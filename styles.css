@@ -1,29 +1,42 @@
 #tap-button {
-    width: 200px; /* Adjust size as needed */
-    height: 200px;
-    line-height: 200px; /* Centers text vertically */
-    text-align: center; /* Centers text horizontally */
-    font-size: 120px; /* Larger "M" */
-    font-weight: 900; /* Maximum boldness */
-    font-family: 'Impact', sans-serif; /* Bold font, fallback to sans-serif */
-    color: #fff; /* White text */
-    background: #6a0dad; /* Purple background */
-    border: 5px solid #fff; /* White border */
-    border-radius: 15px; /* Rounded corners */
-    cursor: pointer;
+    /* Size and Shape */
+    width: 300px; /* Bigger for more impact */
+    height: 300px; /* Keeping it square */
+    border-radius: 30px; /* Softer, rounder edges */
+    
+    /* Perfect Centering */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    
+    /* Font Styling */
+    font-size: 180px; /* Larger "M" */
+    font-weight: 900; /* Max boldness */
+    font-family: 'Arial Black', sans-serif; /* Bold and clean font */
+    color: #ffffff; /* Pure white for contrast */
+    
+    /* Background and Border */
+    background: linear-gradient(135deg, #8a2be2, #4b0082); /* Vibrant purple gradient */
+    border: 10px solid #ffffff; /* Thicker white border for pop */
+    
+    /* 3D Effect */
     text-shadow: 
-        2px 2px 0 #000, /* Bottom-right shadow */
-        -2px -2px 0 #000, /* Top-left shadow */
-        1px 1px 0 #fff, /* Highlight for 3D */
-        -1px -1px 0 #fff; /* Highlight for 3D */
+        5px 5px 0 #000000, /* Deeper shadow for 3D */
+        -5px -5px 0 #000000,
+        3px 3px 0 #ffffff,
+        -3px -3px 0 #ffffff;
     box-shadow: 
-        5px 5px 10px rgba(0, 0, 0, 0.5), /* Bottom-right shadow */
-        -5px -5px 10px rgba(255, 255, 255, 0.1); /* Top-left highlight */
-    transition: transform 0.1s, box-shadow 0.1s; /* For tap effect */
+        10px 10px 20px rgba(0, 0, 0, 0.7), /* Stronger depth */
+        -10px -10px 20px rgba(255, 255, 255, 0.3); /* Subtle highlight */
+    
+    /* Interaction */
+    cursor: pointer;
+    transition: transform 0.3s, box-shadow 0.3s, background 0.3s;
 }
 
-/* Tap Effect on Click */
+/* Tap Effect */
 #tap-button:active {
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    transform: scale(1.2); /* More dramatic tap */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.8); /* Bright glow on tap */
+    background: linear-gradient(135deg, #9b4dff, #6a0dad); /* Shift to lighter purple */
 }
