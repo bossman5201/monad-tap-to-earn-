@@ -12,6 +12,7 @@ body {
     margin: 0;
     padding: 0;
     overflow: hidden;
+    min-height: 100vh; /* Ensure full viewport height */
 }
 
 /* Animated Header */
@@ -29,7 +30,7 @@ body {
     100% { transform: scale(1); }
 }
 
-/* Tap Button Container for Centering */
+/* Tap Button Container for Centering with Flexbox */
 .tap-button-container {
     display: flex;
     justify-content: center; /* Center horizontally */
