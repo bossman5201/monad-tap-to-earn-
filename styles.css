@@ -29,7 +29,7 @@ body {
     100% { transform: scale(1); }
 }
 
-/* Tap Button (M Logo) - Exact Design from Screenshot */
+/* Tap Button (M Logo) - Centered */
 #tap-button {
     width: 200px;
     height: 200px;
@@ -50,6 +50,9 @@ body {
     box-shadow: 
         5px 5px 10px rgba(0, 0, 0, 0.5); /* Shadow for depth */
     transition: transform 0.1s;
+    /* Centering */
+    margin: 20px auto; /* Center horizontally */
+    display: block; /* Ensure it behaves as a block element */
 }
 
 #tap-button:active {
@@ -59,7 +62,7 @@ body {
 
 /* Stats Styling and Animation */
 .stats {
-    margin: 20px 0;
+    margin: 20px auto; /* Center stats */
     font-size: 24px;
     background: var(--secondary-color);
     color: var(--text-color);
@@ -76,6 +79,12 @@ body {
 }
 
 /* Action Buttons with Hover and Click Effects */
+.action-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center; /* Center buttons */
+}
+
 .action-buttons button {
     margin: 5px;
     padding: 10px 20px;
