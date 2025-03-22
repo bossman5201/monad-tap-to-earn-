@@ -1,50 +1,74 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
- <meta charset="UTF-8">
- <meta name="viewport" content="width=device-width, initial-scale=1.0">
- <title>Rocket Fuel Miner</title>
- <style>
- body { font-family: Arial, sans-serif; text-align: center; background: #0a0a23; color: #fff; }
- #tap-button { font-size: 48px; padding: 20px; background: #ff4500; border: none; border-radius: 10px; cursor: pointer; }
- #tap-button:hover { background: #ff6347; }
- .stats { margin: 20px 0; font-size: 24px; }
- .action-buttons { margin: 20px 0; }
- button { margin: 5px; padding: 10px 20px; font-size: 18px; cursor: pointer; }
- .warning { color: #ff4500; font-weight: bold; }
- select { padding: 5px; font-size: 16px; }
- </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rocket Fuel Miner</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
- <h1>Rocket Fuel Miner 🚀</h1>
- <button id="connect-wallet">Connect Wallet</button>
- <div id="wallet-address" class="stats"></div>
- <div>
- <label for="payment-network">Select Payment Network:</label>
- <select id="payment-network" onchange="switchPaymentNetwork()">
- <option value="mainnet">Ethereum Mainnet</option>
- <option value="arbitrum">Arbitrum</option>
- <option value="optimism">Optimism</option>
- </select>
- </div>
- <button id="tap-button" disabled>⛽ Mine Fuel</button>
- <div id="transaction-status" class="stats"></div>
- <div class="stats">
- <div>Total Fuel: <span id="fuel-display">0</span></div>
- <div>Total Taps: <span id="taps-display">0</span></div>
- <div>Power-Ups Used: <span id="powerups-display">0</span></div>
- <div>Invites Sent: <span id="invites-display">0</span></div>
- <div>Fuel Credits: <span id="credits-display">0</span> <span id="credits-warning" class="warning"></span></div>
- </div>
- <div class="action-buttons">
- <button onclick="buyFuelCredits()">Buy Fuel Credits</button>
- <button onclick="activateTurboBooster()">Turbo Booster (0.0001 ETH)</button>
- <button onclick="activateAutoDrill()">Auto-Drill (0.0002 ETH)</button>
- <button onclick="inviteFriend()">Invite Friend</button>
- <button onclick="claimDailyBonus()">Daily Bonus</button>
- </div>
- <div id="payment-history" class="stats"></div>
- <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
- <script src="game.js"></script>
+    <!-- Background Canvas for Starfield -->
+    <canvas id="canvas"></canvas>
+    
+    <!-- Animated Header -->
+    <div id="header">Rocket Fuel Miner</div>
+    
+    <!-- Connect Wallet Button -->
+    <button id="connect-wallet">Connect Wallet</button>
+    <div id="wallet-address" class="stats"></div>
+    
+    <!-- Payment Network Selector -->
+    <div>
+        <label for="payment-network">Select Payment Network:</label>
+        <select id="payment-network" onchange="switchPaymentNetwork()">
+            <option value="mainnet">Ethereum Mainnet</option>
+            <option value="arbitrum">Arbitrum</option>
+            <option value="optimism">Optimism</option>
+        </select>
+    </div>
+    
+    <!-- Tap Button (M Logo) -->
+    <button id="tap-button" disabled>M</button>
+    
+    <!-- Transaction Status -->
+    <div id="transaction-status" class="stats"></div>
+    
+    <!-- Stats Display -->
+    <div class="stats">
+        <div>Total Fuel: <span id="fuel-display">0</span></div>
+        <div>Total Taps: <span id="taps-display">0</span></div>
+        <div>Power-Ups Used: <span id="powerups-display">0</span></div>
+        <div>Invites Sent: <span id="invites-display">0</span></div>
+        <div>Fuel Credits: <span id="credits-display">0</span> <span id="credits-warning" class="warning"></span></div>
+    </div>
+    
+    <!-- Action Buttons -->
+    <div class="action-buttons">
+        <button onclick="buyFuelCredits()">Buy Fuel Credits</button>
+        <button onclick="activateTurboBooster()">Activate Turbo Booster</button>
+        <button onclick="activateAutoDrill()">Activate Auto-Drill</button>
+        <button onclick="inviteFriend()">Invite Friend</button>
+        <button onclick="claimDailyBonus()">Claim Daily Bonus</button>
+        <button onclick="toggleTheme()">Toggle Theme</button>
+    </div>
+    
+    <!-- Payment History -->
+    <div id="payment-history" class="stats"></div>
+    
+    <!-- Loading Spinner -->
+    <div id="loader"></div>
+    
+    <!-- Rocket Flyby Element -->
+    <div id="rocket"></div>
+    
+    <!-- Audio Files for Sound Effects -->
+    <audio id="tap-sound" src="tap.mp3"></audio>
+    <audio id="powerup-sound" src="powerup.mp3"></audio>
+    <audio id="click-sound" src="click.mp3"></audio>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.11.4/gsap.min.js"></script>
+    <script src="game.js"></script>
 </body>
 </html>
