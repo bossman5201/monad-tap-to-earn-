@@ -159,20 +159,50 @@ body {
 
 /* Stats Styling and Animation */
 .stats {
-    margin: 20px auto; /* Center stats */
-    font-size: 24px;
-    background: #fff; /* White */
-    color: #000; /* Black */
-    padding: 10px;
-    border-radius: 10px;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    margin: 20px auto; /* Center the stats */
+    padding: 15px;
+    background: #fff; /* White background */
+    color: #000; /* Black text */
+    border-radius: 15px; /* Rounded corners */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 3D effect */
     display: inline-block;
-    transition: transform 0.3s, color 0.3s;
+    position: relative;
+    animation: float 3s ease-in-out infinite; /* Floating animation */
 }
 
-.stats.updated {
-    transform: scale(1.1);
-    color: gold;
+/* Floating Animation */
+@keyframes float {
+    0% { transform: translateY(0); }
+    50% { transform: translateY(-10px); }
+    100% { transform: translateY(0); }
+}
+
+/* Individual Stats */
+.stat-item {
+    font-size: 24px; /* Larger text */
+    font-weight: bold; /* Bolder text */
+    margin: 10px 0; /* Spacing */
+    color: #6a0dad; /* Purple theme */
+    transition: transform 0.3s, color 0.3s; /* Smooth transitions */
+}
+
+/* Highlight on Update */
+.stat-item.updated {
+    transform: scale(1.1); /* Enlarge slightly */
+    color: gold; /* Gold highlight */
+}
+
+/* Unique Colors for Each Stat */
+#fuel-stat { color: #ff6347; } /* Tomato red */
+#taps-stat { color: #4682b4; } /* Steel blue */
+#powerups-stat { color: #32cd32; } /* Lime green */
+#invites-stat { color: #ffa500; } /* Orange */
+#credits-stat { color: #6a0dad; } /* Purple */
+
+/* Warning Text */
+.warning {
+    color: #ff4500; /* Orange-red */
+    font-weight: bold;
 }
 
 /* Action Buttons with Hover and Click Effects */
@@ -223,12 +253,6 @@ body {
     font-size: 14px;
     color: gold;
     margin-top: 5px;
-}
-
-/* Warning Text */
-.warning {
-    color: #ff4500;
-    font-weight: bold;
 }
 
 /* Payment Network Selector */
