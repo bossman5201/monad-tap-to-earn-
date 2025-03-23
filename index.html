@@ -18,6 +18,7 @@
         <button id="connect-wallet">Connect Wallet</button>
         <button id="disconnect-wallet" style="display: none;">Disconnect Wallet</button>
         <div id="wallet-address" class="stats"></div>
+        <div id="disconnect-instruction" class="stats" style="display: none; color: #ff4500;"></div>
     </div>
     
     <!-- Payment Network Selector -->
@@ -33,6 +34,7 @@
     <!-- Tap Button Container for Centering -->
     <div class="tap-button-container">
         <button id="tap-button">M</button>
+        <div id="tap-disabled-message" class="warning" style="display: none;">Out of Fuel Credits! Buy more to continue.</div>
     </div>
     
     <!-- Transaction Status -->
@@ -49,9 +51,15 @@
     
     <!-- Action Buttons -->
     <div class="action-buttons">
-        <button onclick="buyFuelCredits()">Buy Fuel Credits</button>
-        <button onclick="activateTurboBooster()">Activate Turbo Booster</button>
-        <button onclick="activateAutoDrill()">Activate Auto-Drill</button>
+        <button id="buy-credits-button" onclick="buyFuelCredits()">Buy Fuel Credits</button>
+        <div class="powerup-container">
+            <button id="turbo-booster-button" onclick="activateTurboBooster()">Activate Turbo Booster</button>
+            <div id="turbo-booster-message" class="powerup-message" style="display: none;"></div>
+        </div>
+        <div class="powerup-container">
+            <button id="auto-drill-button" onclick="activateAutoDrill()">Activate Auto-Drill</button>
+            <div id="auto-drill-message" class="powerup-message" style="display: none;"></div>
+        </div>
         <button onclick="inviteFriend()">Invite Friend</button>
         <button onclick="claimDailyBonus()">Claim Daily Bonus</button>
         <button onclick="toggleTheme()">Toggle Theme</button>
