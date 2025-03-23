@@ -43,6 +43,7 @@ const tapSound = document.getElementById('tap-sound');
 const powerupSound = document.getElementById('powerup-sound');
 const clickSound = document.getElementById('click-sound');
 const tapButton = document.getElementById('tap-button');
+const particleContainer = document.getElementById('particle-container');
 const tapDisabledMessage = document.getElementById('tap-disabled-message');
 const fuelDisplay = document.getElementById('fuel-display');
 const creditsDisplay = document.getElementById('credits-display');
@@ -53,6 +54,39 @@ const turboBoosterButton = document.getElementById('turbo-booster-button');
 const turboBoosterMessage = document.getElementById('turbo-booster-message');
 const autoDrillButton = document.getElementById('auto-drill-button');
 const autoDrillMessage = document.getElementById('auto-drill-message');
+
+// Particle System for Tap Effect
+function spawnParticles() {
+    const particleCount = 5; // Number of particles per tap
+    const centerX = particleContainer.offsetWidth / 2;
+    const centerY = particleContainer.offsetHeight / 2;
+
+    for (let i = 0; i < particleCount; i++) {
+        const particle = document.createElement('div');
+        particle.classList.add('particle');
+        
+        // Start particles at the center of the button
+        particle.style.left = `${centerX}px`;
+        particle.style.top = `${centerY}px`;
+        
+        // Random direction for particles (move outward)
+        const angle = Math.random() * Math.PI * 2; // Random angle in radians
+        const distance = Math.random() * 50 + 20; // Random distance between 20px and 70px
+        const x = Math.cos(angle) * distance;
+        const y = Math.sin(angle) * distance;
+        
+        // Set CSS custom properties for the animation
+        particle.style.setProperty('--x', `${x}px`);
+        particle.style.setProperty('--y', `${y}px`);
+        
+        particleContainer.appendChild(particle);
+        
+        // Remove particle after animation completes
+        particle.addEventListener('animationend', () => {
+            particle.remove();
+        });
+    }
+}
 
 // Load game state from localStorage
 function loadGameState() {
@@ -95,7 +129,7 @@ function saveGameState() {
 // Initialize UI by loading game state
 loadGameState();
 
-// Tap Interaction with Sound and Animation
+// Tap Interaction with Sound, Animation, and Particles
 function handleTap() {
     if (fuelCredits <= 0) {
         // Not enough fuel credits to tap
@@ -112,8 +146,9 @@ function handleTap() {
     totalFuel += fuelPerTap;
     fuelDisplay.textContent = totalFuel;
 
-    // Play sound and update stats
+    // Play sound, spawn particles, and update stats
     tapSound.play();
+    spawnParticles(); // Spawn particles on tap
     totalTaps++;
     tapCount++; // Increment tapCount (kept for potential future use)
     document.getElementById('taps-display').textContent = totalTaps;
@@ -176,6 +211,7 @@ function activateTurboBooster() {
     // Activate power-up
     fuelPerTap = 2; // Double fuel per tap
     turboBoosterButton.disabled = true;
+    tapButton.classList.add('glowing'); // Add glow effect
     powerupSound.play();
     updateStats();
 
@@ -191,6 +227,7 @@ function activateTurboBooster() {
             clearInterval(timer);
             fuelPerTap = 1; // Reset fuel per tap
             turboBoosterButton.disabled = false;
+            tapButton.classList.remove('glowing'); // Remove glow effect
             turboBoosterMessage.style.display = 'none'; // Hide timer after 60 seconds
         }
     }, 1000);
@@ -225,6 +262,7 @@ function activateAutoDrill() {
     // Activate power-up
     isAutoDrillActive = true;
     autoDrillButton.disabled = true;
+    tapButton.classList.add('glowing'); // Add glow effect
     powerupSound.play();
     updateStats();
 
@@ -267,6 +305,7 @@ function activateAutoDrill() {
             clearInterval(autoTap);
             isAutoDrillActive = false;
             autoDrillButton.disabled = false;
+            tapButton.classList.remove('glowing'); // Remove glow effect
             autoDrillMessage.style.display = 'none'; // Hide timer after 120 seconds
             tapsRemaining = 0; // Ensure no more taps are added
         }
@@ -441,6 +480,7 @@ function resetGame() {
     document.getElementById('taps-display').textContent = totalTaps;
     creditsWarning.textContent = '';
     tapButton.disabled = false;
+    tapButton.classList.remove('glowing'); // Remove glow effect if active
     tapDisabledMessage.style.display = 'none';
     turboBoosterButton.disabled = false;
     autoDrillButton.disabled = false;
