@@ -129,6 +129,22 @@ function saveGameState() {
 // Initialize UI by loading game state
 loadGameState();
 
+// Smooth Counter Update Function
+function smoothUpdate(element, targetValue, duration = 1000) {
+    const startValue = parseInt(element.textContent) || 0;
+    const startTime = performance.now();
+    const update = () => {
+        const elapsed = performance.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const value = Math.floor(startValue + (targetValue - startValue) * progress);
+        element.textContent = value;
+        if (progress < 1) {
+            requestAnimationFrame(update);
+        }
+    };
+    requestAnimationFrame(update);
+}
+
 // Tap Interaction with Sound, Animation, and Particles
 function handleTap() {
     if (fuelCredits <= 0) {
@@ -140,18 +156,17 @@ function handleTap() {
 
     // Consume 1 fuel credit per tap
     fuelCredits--;
-    creditsDisplay.textContent = fuelCredits;
+    smoothUpdate(creditsDisplay, fuelCredits);
 
     // Earn fuel per tap (modified by power-ups)
     totalFuel += fuelPerTap;
-    fuelDisplay.textContent = totalFuel;
+    smoothUpdate(fuelDisplay, totalFuel);
 
     // Play sound, spawn particles, and update stats
     tapSound.play();
     spawnParticles(); // Spawn particles on tap
     totalTaps++;
-    tapCount++; // Increment tapCount (kept for potential future use)
-    document.getElementById('taps-display').textContent = totalTaps;
+    smoothUpdate(document.getElementById('taps-display'), totalTaps);
     updateStats();
 
     // Update credits warning
@@ -179,7 +194,7 @@ tapButton.addEventListener('touchstart', (e) => {
 
 // Stats Animation Trigger
 function updateStats() {
-    document.querySelectorAll('.stats div').forEach(stat => {
+    document.querySelectorAll('.stat-item').forEach(stat => {
         stat.classList.add('updated');
         setTimeout(() => stat.classList.remove('updated'), 300);
     });
@@ -199,14 +214,14 @@ function activateTurboBooster() {
 
     // Consume credits
     fuelCredits -= powerUpCost;
-    creditsDisplay.textContent = fuelCredits;
+    smoothUpdate(creditsDisplay, fuelCredits);
     if (fuelCredits <= 3) {
         creditsWarning.textContent = '(Low credits!)';
     }
 
     // Increment power-ups used
     powerUpsUsed++;
-    powerupsDisplay.textContent = powerUpsUsed;
+    smoothUpdate(powerupsDisplay, powerUpsUsed);
 
     // Activate power-up
     fuelPerTap = 2; // Double fuel per tap
@@ -250,14 +265,14 @@ function activateAutoDrill() {
 
     // Consume credits
     fuelCredits -= powerUpCost;
-    creditsDisplay.textContent = fuelCredits;
+    smoothUpdate(creditsDisplay, fuelCredits);
     if (fuelCredits <= 3) {
         creditsWarning.textContent = '(Low credits!)';
     }
 
     // Increment power-ups used
     powerUpsUsed++;
-    powerupsDisplay.textContent = powerUpsUsed;
+    smoothUpdate(powerupsDisplay, powerUpsUsed);
 
     // Activate power-up
     isAutoDrillActive = true;
@@ -423,7 +438,7 @@ function buyFuelCredits() {
     setTimeout(() => {
         document.getElementById('loader').style.display = 'none';
         fuelCredits += 10; // Add 10 fuel credits
-        creditsDisplay.textContent = fuelCredits;
+        smoothUpdate(creditsDisplay, fuelCredits);
         creditsWarning.textContent = fuelCredits <= 3 ? '(Low credits!)' : '';
         tapButton.disabled = false; // Re-enable tap button
         tapDisabledMessage.style.display = 'none'; // Hide disabled message
@@ -435,7 +450,7 @@ function buyFuelCredits() {
 function inviteFriend() {
     clickSound.play();
     invitesSent++;
-    invitesDisplay.textContent = invitesSent;
+    smoothUpdate(invitesDisplay, invitesSent);
     updateStats();
     saveGameState();
 }
@@ -443,7 +458,7 @@ function inviteFriend() {
 function claimDailyBonus() {
     clickSound.play();
     totalFuel += 50;
-    fuelDisplay.textContent = totalFuel;
+    smoothUpdate(fuelDisplay, totalFuel);
     updateStats();
     saveGameState();
 }
@@ -473,11 +488,11 @@ function resetGame() {
     isAutoDrillActive = false;
 
     // Reset UI
-    fuelDisplay.textContent = totalFuel;
-    creditsDisplay.textContent = fuelCredits;
-    powerupsDisplay.textContent = powerUpsUsed;
-    invitesDisplay.textContent = invitesSent;
-    document.getElementById('taps-display').textContent = totalTaps;
+    smoothUpdate(fuelDisplay, totalFuel);
+    smoothUpdate(creditsDisplay, fuelCredits);
+    smoothUpdate(powerupsDisplay, powerUpsUsed);
+    smoothUpdate(invitesDisplay, invitesSent);
+    smoothUpdate(document.getElementById('taps-display'), totalTaps);
     creditsWarning.textContent = '';
     tapButton.disabled = false;
     tapButton.classList.remove('glowing'); // Remove glow effect if active
