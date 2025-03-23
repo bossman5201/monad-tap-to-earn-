@@ -157,7 +157,7 @@ select {
     z-index: -1;
 }
 
-/* Rocket Flyby */
+/* Rocket Flyby Animation with CSS */
 #rocket {
     position: fixed;
     width: 50px;
@@ -165,4 +165,19 @@ select {
     background: url('rocket.png') no-repeat;
     background-size: contain;
     display: none;
+    left: -50px; /* Start off-screen */
+}
+
+.flyby {
+    display: block;
+    animation: flyAcross 2s linear forwards;
+}
+
+@keyframes flyAcross {
+    0% {
+        left: -50px;
+    }
+    100% {
+        left: 100%;
+    }
 }
