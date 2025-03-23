@@ -78,6 +78,7 @@ body {
 
 /* Tap Button Container for Centering with Flexbox */
 .tap-button-container {
+    position: relative; /* For positioning particles */
     display: flex;
     justify-content: center; /* Center horizontally */
     align-items: center; /* Center vertically */
@@ -106,7 +107,7 @@ body {
         -2px -2px 0 #000; /* Slight 3D effect */
     box-shadow: 
         5px 5px 10px rgba(0, 0, 0, 0.5); /* Shadow for depth */
-    transition: transform 0.1s, opacity 0.3s;
+    transition: transform 0.1s, opacity 0.3s, box-shadow 0.3s;
 }
 
 #tap-button:active {
@@ -119,6 +120,41 @@ body {
     cursor: not-allowed;
     transform: none;
     box-shadow: none;
+}
+
+/* Glow Effect for Power-Ups */
+#tap-button.glowing {
+    box-shadow: 0 0 20px gold, 0 0 40px gold; /* Glowing effect */
+}
+
+/* Particle Container */
+#particle-container {
+    position: absolute;
+    width: 200px; /* Match tap button size */
+    height: 200px;
+    pointer-events: none; /* Prevent particles from blocking button clicks */
+}
+
+/* Particle Styling */
+.particle {
+    position: absolute;
+    width: 5px;
+    height: 5px;
+    background: gold; /* Gold particles */
+    border-radius: 50%;
+    opacity: 1;
+    animation: particle-burst 1s ease-out forwards;
+}
+
+@keyframes particle-burst {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--x), var(--y)) scale(0);
+    }
 }
 
 /* Stats Styling and Animation */
@@ -244,6 +280,11 @@ select {
         width: 150px; /* Smaller tap button on mobile */
         height: 150px;
         font-size: 90px;
+    }
+
+    #particle-container {
+        width: 150px; /* Match smaller tap button size on mobile */
+        height: 150px;
     }
 
     .stats {
