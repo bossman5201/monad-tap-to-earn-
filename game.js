@@ -378,20 +378,6 @@ if (localStorage.getItem('walletConnected') === 'true') {
 connectWalletButton.addEventListener('click', connectWallet);
 disconnectWalletButton.addEventListener('click', disconnectWallet);
 
-// Theme Toggle (Purple/White)
-function toggleTheme() {
-    const root = document.documentElement;
-    if (root.style.getPropertyValue('--primary-color') === '#6a0dad') {
-        root.style.setProperty('--primary-color', '#fff');
-        root.style.setProperty('--secondary-color', '#6a0dad');
-        root.style.setProperty('--text-color', '#fff');
-    } else {
-        root.style.setProperty('--primary-color', '#6a0dad');
-        root.style.setProperty('--secondary-color', '#fff');
-        root.style.setProperty('--text-color', '#000');
-    }
-}
-
 // Action Functions with Animations and Sound
 function buyFuelCredits() {
     document.getElementById('loader').style.display = 'block';
