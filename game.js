@@ -72,31 +72,53 @@ function updateStats() {
 
 // Wallet Connection with Ethers.js
 const connectWalletButton = document.getElementById('connect-wallet');
+const disconnectWalletButton = document.getElementById('disconnect-wallet');
 const walletAddressDisplay = document.getElementById('wallet-address');
 
 async function connectWallet() {
     if (typeof window.ethereum !== 'undefined') {
         try {
+            // Show "Connecting..." state immediately
+            connectWalletButton.textContent = 'Connecting...';
+            connectWalletButton.disabled = true;
+
             // Request access to the user's wallet
             const provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             const signer = provider.getSigner();
             const address = await signer.getAddress();
-            
-            // Display the wallet address
-            walletAddressDisplay.textContent = `Connected: ${address}`;
-            connectWalletButton.textContent = 'Wallet Connected';
-            connectWalletButton.disabled = true; // Disable button after connecting
+
+            // Shorten the wallet address (first 5 characters + "...")
+            const shortAddress = `${address.slice(0, 5)}...`;
+
+            // Update UI
+            walletAddressDisplay.textContent = `Connected: ${shortAddress}`;
+            connectWalletButton.style.display = 'none'; // Hide connect button
+            disconnectWalletButton.style.display = 'inline-block'; // Show disconnect button
         } catch (error) {
             console.error('Wallet connection failed:', error);
             walletAddressDisplay.textContent = 'Connection failed. Please try again.';
+            connectWalletButton.textContent = 'Connect Wallet';
+            connectWalletButton.disabled = false;
         }
     } else {
         walletAddressDisplay.textContent = 'Please install MetaMask!';
+        connectWalletButton.textContent = 'Connect Wallet';
+        connectWalletButton.disabled = false;
     }
 }
 
+function disconnectWallet() {
+    // Reset UI
+    walletAddressDisplay.textContent = '';
+    connectWalletButton.textContent = 'Connect Wallet';
+    connectWalletButton.disabled = false;
+    connectWalletButton.style.display = 'inline-block'; // Show connect button
+    disconnectWalletButton.style.display = 'none'; // Hide disconnect button
+}
+
 connectWalletButton.addEventListener('click', connectWallet);
+disconnectWalletButton.addEventListener('click', disconnectWallet);
 
 // Theme Toggle (Purple/White)
 function toggleTheme() {
