@@ -76,10 +76,9 @@ function handleTap() {
     // Play sound and update stats
     tapSound.play();
     totalTaps++;
-    tapCount++; // Increment tapCount for rocket flyby
+    tapCount++; // Increment tapCount (no longer used for rocket flyby, but keeping for potential future use)
     document.getElementById('taps-display').textContent = totalTaps;
     updateStats();
-    triggerRocketFlyby();
 
     // Update credits warning
     if (fuelCredits <= 3) {
@@ -100,19 +99,6 @@ tapButton.addEventListener('touchstart', (e) => {
     e.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
     handleTap();
 });
-
-// Rocket Flyby Animation (every 100 taps)
-function triggerRocketFlyby() {
-    console.log(`Tap count: ${tapCount}`); // Debug log
-    if (tapCount % 100 === 0) {
-        console.log('Triggering rocket flyby'); // Debug log
-        const rocket = document.getElementById('rocket');
-        rocket.style.left = '-50px'; // Reset position
-        rocket.classList.remove('flyby'); // Remove previous animation
-        void rocket.offsetWidth; // Trigger reflow to restart animation
-        rocket.classList.add('flyby'); // Start the CSS animation
-    }
-}
 
 // Stats Animation Trigger
 function updateStats() {
