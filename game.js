@@ -35,26 +35,65 @@ let tapCount = 0;
 let totalTaps = 0;
 let fuelPerTap = 1; // Default fuel per tap
 let powerUpsUsed = 0;
+let invitesSent = 0;
 let isAutoDrillActive = false;
 
 // DOM Elements
 const tapSound = document.getElementById('tap-sound');
 const powerupSound = document.getElementById('powerup-sound');
+const clickSound = document.getElementById('click-sound');
 const tapButton = document.getElementById('tap-button');
 const tapDisabledMessage = document.getElementById('tap-disabled-message');
 const fuelDisplay = document.getElementById('fuel-display');
 const creditsDisplay = document.getElementById('credits-display');
 const creditsWarning = document.getElementById('credits-warning');
 const powerupsDisplay = document.getElementById('powerups-display');
+const invitesDisplay = document.getElementById('invites-display');
 const turboBoosterButton = document.getElementById('turbo-booster-button');
 const turboBoosterMessage = document.getElementById('turbo-booster-message');
 const autoDrillButton = document.getElementById('auto-drill-button');
 const autoDrillMessage = document.getElementById('auto-drill-message');
 
-// Initialize UI
-fuelDisplay.textContent = totalFuel;
-creditsDisplay.textContent = fuelCredits;
-powerupsDisplay.textContent = powerUpsUsed;
+// Load game state from localStorage
+function loadGameState() {
+    totalFuel = parseInt(localStorage.getItem('totalFuel')) || 0;
+    fuelCredits = parseInt(localStorage.getItem('fuelCredits')) || 10; // Default to 10 if not set
+    totalTaps = parseInt(localStorage.getItem('totalTaps')) || 0;
+    powerUpsUsed = parseInt(localStorage.getItem('powerUpsUsed')) || 0;
+    invitesSent = parseInt(localStorage.getItem('invitesSent')) || 0;
+
+    // Update UI with loaded values
+    fuelDisplay.textContent = totalFuel;
+    creditsDisplay.textContent = fuelCredits;
+    powerupsDisplay.textContent = powerUpsUsed;
+    invitesDisplay.textContent = invitesSent;
+    document.getElementById('taps-display').textContent = totalTaps;
+
+    // Update credits warning
+    if (fuelCredits <= 3) {
+        creditsWarning.textContent = '(Low credits!)';
+    } else {
+        creditsWarning.textContent = '';
+    }
+
+    // Disable tap button if credits are 0
+    if (fuelCredits <= 0) {
+        tapButton.disabled = true;
+        tapDisabledMessage.style.display = 'block';
+    }
+}
+
+// Save game state to localStorage
+function saveGameState() {
+    localStorage.setItem('totalFuel', totalFuel);
+    localStorage.setItem('fuelCredits', fuelCredits);
+    localStorage.setItem('totalTaps', totalTaps);
+    localStorage.setItem('powerUpsUsed', powerUpsUsed);
+    localStorage.setItem('invitesSent', invitesSent);
+}
+
+// Initialize UI by loading game state
+loadGameState();
 
 // Tap Interaction with Sound and Animation
 function handleTap() {
@@ -76,7 +115,7 @@ function handleTap() {
     // Play sound and update stats
     tapSound.play();
     totalTaps++;
-    tapCount++; // Increment tapCount (no longer used for rocket flyby, but keeping for potential future use)
+    tapCount++; // Increment tapCount (kept for potential future use)
     document.getElementById('taps-display').textContent = totalTaps;
     updateStats();
 
@@ -92,6 +131,9 @@ function handleTap() {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
     }
+
+    // Save game state
+    saveGameState();
 }
 
 tapButton.addEventListener('click', handleTap);
@@ -152,6 +194,9 @@ function activateTurboBooster() {
             turboBoosterMessage.style.display = 'none'; // Hide timer after 60 seconds
         }
     }, 1000);
+
+    // Save game state
+    saveGameState();
 }
 
 // Power-Up: Auto-Drill (1000 taps over 120 seconds)
@@ -226,6 +271,9 @@ function activateAutoDrill() {
             tapsRemaining = 0; // Ensure no more taps are added
         }
     }, 1000);
+
+    // Save game state
+    saveGameState();
 }
 
 // Wallet Connection with Ethers.js
@@ -355,24 +403,65 @@ function buyFuelCredits() {
         tapButton.disabled = false; // Re-enable tap button
         tapDisabledMessage.style.display = 'none'; // Hide disabled message
         updateStats();
+        saveGameState();
     }, 2000);
 }
 
 function inviteFriend() {
-    document.getElementById('click-sound').play();
-    document.getElementById('invites-display').textContent = 
-        parseInt(document.getElementById('invites-display').textContent) + 1;
+    clickSound.play();
+    invitesSent++;
+    invitesDisplay.textContent = invitesSent;
     updateStats();
+    saveGameState();
 }
 
 function claimDailyBonus() {
-    document.getElementById('click-sound').play();
-    document.getElementById('fuel-display').textContent = 
-        parseInt(document.getElementById('fuel-display').textContent) + 50;
+    clickSound.play();
+    totalFuel += 50;
+    fuelDisplay.textContent = totalFuel;
     updateStats();
+    saveGameState();
 }
 
 function switchPaymentNetwork() {
-    document.getElementById('click-sound').play();
+    clickSound.play();
     // Add your network switch logic here
+}
+
+// Reset game state
+function resetGame() {
+    // Clear localStorage
+    localStorage.removeItem('totalFuel');
+    localStorage.removeItem('fuelCredits');
+    localStorage.removeItem('totalTaps');
+    localStorage.removeItem('powerUpsUsed');
+    localStorage.removeItem('invitesSent');
+
+    // Reset game state variables
+    totalFuel = 0;
+    fuelCredits = 10; // Start with 10 fuel credits
+    totalTaps = 0;
+    tapCount = 0;
+    fuelPerTap = 1;
+    powerUpsUsed = 0;
+    invitesSent = 0;
+    isAutoDrillActive = false;
+
+    // Reset UI
+    fuelDisplay.textContent = totalFuel;
+    creditsDisplay.textContent = fuelCredits;
+    powerupsDisplay.textContent = powerUpsUsed;
+    invitesDisplay.textContent = invitesSent;
+    document.getElementById('taps-display').textContent = totalTaps;
+    creditsWarning.textContent = '';
+    tapButton.disabled = false;
+    tapDisabledMessage.style.display = 'none';
+    turboBoosterButton.disabled = false;
+    autoDrillButton.disabled = false;
+    turboBoosterMessage.style.display = 'none';
+    autoDrillMessage.style.display = 'none';
+
+    // Play sound and update stats
+    clickSound.play();
+    updateStats();
 }
