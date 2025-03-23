@@ -47,14 +47,10 @@ function triggerRocketFlyby() {
     tapCount++;
     if (tapCount % 100 === 0) {
         const rocket = document.getElementById('rocket');
-        rocket.style.display = 'block';
-        rocket.style.left = '-50px';
-        rocket.style.top = `${Math.random() * window.innerHeight}px`;
-        gsap.to(rocket, { 
-            x: window.innerWidth + 50, 
-            duration: 2, 
-            onComplete: () => rocket.style.display = 'none' 
-        });
+        rocket.style.left = '-50px'; // Reset position
+        rocket.classList.remove('flyby'); // Remove previous animation
+        void rocket.offsetWidth; // Trigger reflow to restart animation
+        rocket.classList.add('flyby'); // Start the CSS animation
     }
 }
 
