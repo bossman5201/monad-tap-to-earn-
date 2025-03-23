@@ -228,29 +228,3 @@ select {
     left: 0;
     z-index: -1;
 }
-
-/* Rocket Flyby Animation with CSS */
-#rocket {
-    position: fixed;
-    width: 50px;
-    height: 50px;
-    background: url('rocket.png') no-repeat;
-    background-size: contain;
-    background-color: red; /* Fallback color to confirm visibility */
-    display: none;
-    left: -50px; /* Start off-screen */
-}
-
-.flyby {
-    display: block;
-    animation: flyAcross 2s linear forwards;
-}
-
-@keyframes flyAcross {
-    0% {
-        left: -50px;
-    }
-    100% {
-        left: 100%;
-    }
-}
