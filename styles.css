@@ -7,12 +7,21 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background: var(--primary-color); /* Restore purple background */
+    background: var(--primary-color);
     color: var(--secondary-color);
     margin: 0;
     padding: 0;
-    overflow: hidden;
     min-height: 100vh; /* Ensure full viewport height */
+}
+
+/* Content Container for Scrolling */
+.content {
+    position: relative;
+    z-index: 1; /* Ensure content is above the canvas */
+    overflow-y: auto; /* Allow vertical scrolling */
+    height: 100vh; /* Full viewport height */
+    padding: 10px;
+    box-sizing: border-box;
 }
 
 /* Animated Header */
@@ -226,5 +235,33 @@ select {
     position: fixed;
     top: 0;
     left: 0;
-    z-index: -1;
+    z-index: -1; /* Behind the content */
+    width: 100%;
+    height: 100%;
+}
+
+/* Responsive Adjustments for Mobile */
+@media (max-width: 600px) {
+    #header {
+        font-size: 24px; /* Smaller header on mobile */
+    }
+
+    #tap-button {
+        width: 150px; /* Smaller tap button on mobile */
+        height: 150px;
+        font-size: 90px;
+    }
+
+    .stats {
+        font-size: 18px; /* Smaller stats text on mobile */
+    }
+
+    .action-buttons button {
+        font-size: 14px; /* Smaller buttons on mobile */
+        padding: 8px 16px;
+    }
+
+    .powerup-message {
+        font-size: 12px; /* Smaller power-up messages on mobile */
+    }
 }
