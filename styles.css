@@ -164,6 +164,7 @@ select {
     height: 50px;
     background: url('rocket.png') no-repeat;
     background-size: contain;
+    background-color: red; /* Fallback color to confirm visibility */
     display: none;
     left: -50px; /* Start off-screen */
 }
