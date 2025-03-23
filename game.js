@@ -34,18 +34,26 @@ const tapButton = document.getElementById('tap-button');
 let tapCount = 0;
 let totalTaps = 0;
 
-tapButton.addEventListener('click', () => {
+function handleTap() {
     tapSound.play();
     totalTaps++;
+    tapCount++; // Increment tapCount for rocket flyby
     document.getElementById('taps-display').textContent = totalTaps;
     updateStats();
     triggerRocketFlyby();
+}
+
+tapButton.addEventListener('click', handleTap);
+tapButton.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
+    handleTap();
 });
 
 // Rocket Flyby Animation (every 100 taps)
 function triggerRocketFlyby() {
-    tapCount++;
+    console.log(`Tap count: ${tapCount}`); // Debug log
     if (tapCount % 100 === 0) {
+        console.log('Triggering rocket flyby'); // Debug log
         const rocket = document.getElementById('rocket');
         rocket.style.left = '-50px'; // Reset position
         rocket.classList.remove('flyby'); // Remove previous animation
@@ -61,6 +69,34 @@ function updateStats() {
         setTimeout(() => stat.classList.remove('updated'), 300);
     });
 }
+
+// Wallet Connection with Ethers.js
+const connectWalletButton = document.getElementById('connect-wallet');
+const walletAddressDisplay = document.getElementById('wallet-address');
+
+async function connectWallet() {
+    if (typeof window.ethereum !== 'undefined') {
+        try {
+            // Request access to the user's wallet
+            const provider = new ethers.providers.Web3Provider(window.ethereum);
+            await provider.send("eth_requestAccounts", []);
+            const signer = provider.getSigner();
+            const address = await signer.getAddress();
+            
+            // Display the wallet address
+            walletAddressDisplay.textContent = `Connected: ${address}`;
+            connectWalletButton.textContent = 'Wallet Connected';
+            connectWalletButton.disabled = true; // Disable button after connecting
+        } catch (error) {
+            console.error('Wallet connection failed:', error);
+            walletAddressDisplay.textContent = 'Connection failed. Please try again.';
+        }
+    } else {
+        walletAddressDisplay.textContent = 'Please install MetaMask!';
+    }
+}
+
+connectWalletButton.addEventListener('click', connectWallet);
 
 // Theme Toggle (Purple/White)
 function toggleTheme() {
