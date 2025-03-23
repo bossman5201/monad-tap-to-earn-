@@ -160,7 +160,7 @@ body {
 /* Stats Styling and Animation */
 .stats {
     margin: 20px auto; /* Center the stats */
-    padding: 15px;
+    padding: 10px; /* Reduced from 15px */
     background: #fff; /* White background */
     color: #000; /* Black text */
     border-radius: 15px; /* Rounded corners */
@@ -179,7 +179,7 @@ body {
 
 /* Individual Stats */
 .stat-item {
-    font-size: 24px; /* Larger text */
+    font-size: 20px; /* Reduced from 24px */
     font-weight: bold; /* Bolder text */
     margin: 10px 0; /* Spacing */
     color: #6a0dad; /* Purple theme */
@@ -311,8 +311,12 @@ select {
         height: 150px;
     }
 
+    .stat-item {
+        font-size: 16px; /* Smaller stats text on mobile */
+    }
+
     .stats {
-        font-size: 18px; /* Smaller stats text on mobile */
+        padding: 5px; /* Smaller padding on mobile */
     }
 
     .action-buttons button {
