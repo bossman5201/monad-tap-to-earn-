@@ -30,6 +30,49 @@ body {
     100% { transform: scale(1); }
 }
 
+/* Wallet Section */
+.wallet-section {
+    margin: 10px 0;
+}
+
+#connect-wallet, #disconnect-wallet {
+    padding: 10px 20px;
+    font-size: 18px;
+    font-weight: bold; /* Bold text */
+    color: var(--secondary-color);
+    background: var(--primary-color);
+    border: 2px solid var(--secondary-color);
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3), /* 3D shadow */
+                -5px -5px 10px rgba(255, 255, 255, 0.1);
+    transition: transform 0.2s, box-shadow 0.2s;
+    animation: pulseButton 2s infinite; /* Pulsing animation */
+}
+
+#connect-wallet:hover, #disconnect-wallet:hover {
+    transform: translateY(-2px); /* Lift effect on hover */
+    box-shadow: 8px 8px 15px rgba(0, 0, 0, 0.4),
+                -8px -8px 15px rgba(255, 255, 255, 0.2);
+}
+
+#connect-wallet:active, #disconnect-wallet:active {
+    transform: translateY(2px); /* Press effect on click */
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2),
+                -2px -2px 5px rgba(255, 255, 255, 0.1);
+}
+
+#disconnect-wallet {
+    background: #ff4500; /* Red background for disconnect */
+    margin-left: 10px;
+}
+
+@keyframes pulseButton {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
 /* Tap Button Container for Centering with Flexbox */
 .tap-button-container {
     display: flex;
