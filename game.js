@@ -1,4 +1,4 @@
-// Starfield Background Animation
+// Starfield Background Animation with Milky Way Enhancement
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -55,7 +55,7 @@ const turboBoosterMessage = document.getElementById('turbo-booster-message');
 const autoDrillButton = document.getElementById('auto-drill-button');
 const autoDrillMessage = document.getElementById('auto-drill-message');
 
-// Particle System for Tap Effect
+// Particle System for Enhanced Tap Effect
 function spawnParticles() {
     const particleCount = 5; // Number of particles per tap
     const centerX = particleContainer.offsetWidth / 2;
@@ -65,59 +65,52 @@ function spawnParticles() {
         const particle = document.createElement('div');
         particle.classList.add('particle');
         
-        // Start particles at the center of the button
         particle.style.left = `${centerX}px`;
         particle.style.top = `${centerY}px`;
         
-        // Random direction for particles (move outward)
-        const angle = Math.random() * Math.PI * 2; // Random angle in radians
-        const distance = Math.random() * 50 + 20; // Random distance between 20px and 70px
+        const angle = Math.random() * Math.PI * 2;
+        const distance = Math.random() * 50 + 20;
         const x = Math.cos(angle) * distance;
         const y = Math.sin(angle) * distance;
         
-        // Set CSS custom properties for the animation
         particle.style.setProperty('--x', `${x}px`);
         particle.style.setProperty('--y', `${y}px`);
         
         particleContainer.appendChild(particle);
         
-        // Remove particle after animation completes
         particle.addEventListener('animationend', () => {
             particle.remove();
         });
     }
 }
 
-// Load game state from localStorage
+// Load Game State from localStorage
 function loadGameState() {
     totalFuel = parseInt(localStorage.getItem('totalFuel')) || 0;
-    fuelCredits = parseInt(localStorage.getItem('fuelCredits')) || 10; // Default to 10 if not set
+    fuelCredits = parseInt(localStorage.getItem('fuelCredits')) || 10;
     totalTaps = parseInt(localStorage.getItem('totalTaps')) || 0;
     powerUpsUsed = parseInt(localStorage.getItem('powerUpsUsed')) || 0;
     invitesSent = parseInt(localStorage.getItem('invitesSent')) || 0;
 
-    // Update UI with loaded values
     fuelDisplay.textContent = totalFuel;
     creditsDisplay.textContent = fuelCredits;
     powerupsDisplay.textContent = powerUpsUsed;
     invitesDisplay.textContent = invitesSent;
     document.getElementById('taps-display').textContent = totalTaps;
 
-    // Update credits warning
     if (fuelCredits <= 3) {
         creditsWarning.textContent = '(Low credits!)';
     } else {
         creditsWarning.textContent = '';
     }
 
-    // Disable tap button if credits are 0
     if (fuelCredits <= 0) {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
     }
 }
 
-// Save game state to localStorage
+// Save Game State to localStorage
 function saveGameState() {
     localStorage.setItem('totalFuel', totalFuel);
     localStorage.setItem('fuelCredits', fuelCredits);
@@ -126,7 +119,7 @@ function saveGameState() {
     localStorage.setItem('invitesSent', invitesSent);
 }
 
-// Initialize UI by loading game state
+// Initialize UI
 loadGameState();
 
 // Smooth Counter Update Function
@@ -145,51 +138,50 @@ function smoothUpdate(element, targetValue, duration = 1000) {
     requestAnimationFrame(update);
 }
 
-// Tap Interaction with Sound, Animation, and Particles
+// Tap Interaction with Enhanced Feedback
 function handleTap() {
     if (fuelCredits <= 0) {
-        // Not enough fuel credits to tap
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
         return;
     }
 
-    // Consume 1 fuel credit per tap
     fuelCredits--;
     smoothUpdate(creditsDisplay, fuelCredits);
 
-    // Earn fuel per tap (modified by power-ups)
     totalFuel += fuelPerTap;
     smoothUpdate(fuelDisplay, totalFuel);
 
-    // Play sound, spawn particles, and update stats
     tapSound.play();
-    spawnParticles(); // Spawn particles on tap
+    spawnParticles();
     totalTaps++;
     smoothUpdate(document.getElementById('taps-display'), totalTaps);
     updateStats();
 
-    // Update credits warning
     if (fuelCredits <= 3) {
         creditsWarning.textContent = '(Low credits!)';
     } else {
         creditsWarning.textContent = '';
     }
 
-    // Disable tap button if credits run out
     if (fuelCredits <= 0) {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
     }
 
-    // Save game state
     saveGameState();
 }
 
-tapButton.addEventListener('click', handleTap);
-tapButton.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Prevent default touch behavior (e.g., scrolling)
+tapButton.addEventListener('click', () => {
+    tapButton.classList.add('tap-active');
     handleTap();
+    setTimeout(() => tapButton.classList.remove('tap-active'), 200);
+});
+tapButton.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    tapButton.classList.add('tap-active');
+    handleTap();
+    setTimeout(() => tapButton.classList.remove('tap-active'), 200);
 });
 
 // Stats Animation Trigger
@@ -200,38 +192,30 @@ function updateStats() {
     });
 }
 
-// Power-Up: Turbo Booster (2x fuel per tap for 60 seconds)
+// Power-Up: Turbo Booster
 function activateTurboBooster() {
-    const powerUpCost = 5; // Cost in fuel credits
+    const powerUpCost = 5;
     if (fuelCredits < powerUpCost) {
         turboBoosterMessage.textContent = 'Not enough credits! Need 5 credits.';
         turboBoosterMessage.style.display = 'block';
-        setTimeout(() => {
-            turboBoosterMessage.style.display = 'none';
-        }, 3000);
+        setTimeout(() => turboBoosterMessage.style.display = 'none', 3000);
         return;
     }
 
-    // Consume credits
     fuelCredits -= powerUpCost;
     smoothUpdate(creditsDisplay, fuelCredits);
-    if (fuelCredits <= 3) {
-        creditsWarning.textContent = '(Low credits!)';
-    }
+    if (fuelCredits <= 3) creditsWarning.textContent = '(Low credits!)';
 
-    // Increment power-ups used
     powerUpsUsed++;
     smoothUpdate(powerupsDisplay, powerUpsUsed);
 
-    // Activate power-up
-    fuelPerTap = 2; // Double fuel per tap
+    fuelPerTap = 2;
     turboBoosterButton.disabled = true;
-    tapButton.classList.add('glowing'); // Add glow effect
+    tapButton.classList.add('glowing');
     powerupSound.play();
     updateStats();
 
-    // Show timer
-    let timeLeft = 60; // Duration set to 60 seconds
+    let timeLeft = 60;
     turboBoosterMessage.textContent = `Turbo Booster active! ${timeLeft}s remaining`;
     turboBoosterMessage.style.display = 'block';
 
@@ -240,57 +224,46 @@ function activateTurboBooster() {
         turboBoosterMessage.textContent = `Turbo Booster active! ${timeLeft}s remaining`;
         if (timeLeft <= 0) {
             clearInterval(timer);
-            fuelPerTap = 1; // Reset fuel per tap
+            fuelPerTap = 1;
             turboBoosterButton.disabled = false;
-            tapButton.classList.remove('glowing'); // Remove glow effect
-            turboBoosterMessage.style.display = 'none'; // Hide timer after 60 seconds
+            tapButton.classList.remove('glowing');
+            turboBoosterMessage.style.display = 'none';
         }
     }, 1000);
 
-    // Save game state
     saveGameState();
 }
 
-// Power-Up: Auto-Drill (1000 taps over 120 seconds)
+// Power-Up: Auto-Drill
 function activateAutoDrill() {
-    const powerUpCost = 5; // Cost in fuel credits
+    const powerUpCost = 5;
     if (fuelCredits < powerUpCost) {
         autoDrillMessage.textContent = 'Not enough credits! Need 5 credits.';
         autoDrillMessage.style.display = 'block';
-        setTimeout(() => {
-            autoDrillMessage.style.display = 'none';
-        }, 3000);
+        setTimeout(() => autoDrillMessage.style.display = 'none', 3000);
         return;
     }
 
-    // Consume credits
     fuelCredits -= powerUpCost;
     smoothUpdate(creditsDisplay, fuelCredits);
-    if (fuelCredits <= 3) {
-        creditsWarning.textContent = '(Low credits!)';
-    }
+    if (fuelCredits <= 3) creditsWarning.textContent = '(Low credits!)';
 
-    // Increment power-ups used
     powerUpsUsed++;
     smoothUpdate(powerupsDisplay, powerUpsUsed);
 
-    // Activate power-up
     isAutoDrillActive = true;
     autoDrillButton.disabled = true;
-    tapButton.classList.add('glowing'); // Add glow effect
+    tapButton.classList.add('glowing');
     powerupSound.play();
     updateStats();
 
-    // Show timer
-    let timeLeft = 120; // Duration set to 120 seconds
+    let timeLeft = 120;
     autoDrillMessage.textContent = `Auto-Drill active! ${timeLeft}s remaining`;
     autoDrillMessage.style.display = 'block';
 
-    // Calculate taps per second for 1000 taps over 120 seconds
     const totalTapsToAdd = 1000;
-    const duration = 120; // 120 seconds
-    const tapsPerSecond = totalTapsToAdd / duration; // ~8.33 taps per second
-    const intervalTime = 1000; // 1 second intervals
+    const duration = 120;
+    const tapsPerSecond = totalTapsToAdd / duration;
     let tapsRemaining = totalTapsToAdd;
 
     const autoTap = setInterval(() => {
@@ -299,18 +272,14 @@ function activateAutoDrill() {
             return;
         }
 
-        // Calculate how many taps to add this second
         const tapsThisSecond = Math.min(tapsPerSecond, tapsRemaining);
         for (let i = 0; i < Math.floor(tapsThisSecond); i++) {
-            handleTap(); // Simulate a full tap
+            handleTap();
         }
-        // Handle fractional taps (e.g., 0.33 taps)
-        if (Math.random() < tapsThisSecond % 1) {
-            handleTap(); // Add an extra tap based on the fractional chance
-        }
+        if (Math.random() < tapsThisSecond % 1) handleTap();
 
         tapsRemaining -= tapsThisSecond;
-    }, intervalTime);
+    }, 1000);
 
     const timer = setInterval(() => {
         timeLeft--;
@@ -320,13 +289,12 @@ function activateAutoDrill() {
             clearInterval(autoTap);
             isAutoDrillActive = false;
             autoDrillButton.disabled = false;
-            tapButton.classList.remove('glowing'); // Remove glow effect
-            autoDrillMessage.style.display = 'none'; // Hide timer after 120 seconds
-            tapsRemaining = 0; // Ensure no more taps are added
+            tapButton.classList.remove('glowing');
+            autoDrillMessage.style.display = 'none';
+            tapsRemaining = 0;
         }
     }, 1000);
 
-    // Save game state
     saveGameState();
 }
 
@@ -341,30 +309,23 @@ let signer = null;
 async function connectWallet() {
     if (typeof window.ethereum !== 'undefined') {
         try {
-            // Show "Connecting..." state immediately
             connectWalletButton.textContent = 'Connecting...';
             connectWalletButton.disabled = true;
 
-            // Request access to the user's wallet
             provider = new ethers.providers.Web3Provider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             signer = provider.getSigner();
             const address = await signer.getAddress();
 
-            // Shorten the wallet address (first 5 characters + "...")
             const shortAddress = `${address.slice(0, 5)}...`;
-
-            // Update UI
             walletAddressDisplay.textContent = `Connected: ${shortAddress}`;
-            connectWalletButton.style.display = 'none'; // Hide connect button
-            disconnectWalletButton.style.display = 'inline-block'; // Show disconnect button
-            disconnectInstruction.style.display = 'none'; // Hide instruction if visible
+            connectWalletButton.style.display = 'none';
+            disconnectWalletButton.style.display = 'inline-block';
+            disconnectInstruction.style.display = 'none';
 
-            // Store connection state in localStorage
             localStorage.setItem('walletConnected', 'true');
             localStorage.setItem('walletAddress', address);
 
-            // Listen for account and network changes
             window.ethereum.on('accountsChanged', handleAccountsChanged);
             window.ethereum.on('chainChanged', handleChainChanged);
         } catch (error) {
@@ -381,26 +342,21 @@ async function connectWallet() {
 }
 
 async function disconnectWallet() {
-    // Reset UI
     walletAddressDisplay.textContent = '';
     connectWalletButton.textContent = 'Connect Wallet';
     connectWalletButton.disabled = false;
-    connectWalletButton.style.display = 'inline-block'; // Show connect button
-    disconnectWalletButton.style.display = 'none'; // Hide disconnect button
+    connectWalletButton.style.display = 'inline-block';
+    disconnectWalletButton.style.display = 'none';
 
-    // Show instructions for manual disconnection in MetaMask
     disconnectInstruction.textContent = 'To fully disconnect, go to MetaMask > Connected Sites > Disconnect this dApp.';
     disconnectInstruction.style.display = 'block';
 
-    // Clear localStorage
     localStorage.removeItem('walletConnected');
     localStorage.removeItem('walletAddress');
 
-    // Reset provider and signer
     provider = null;
     signer = null;
 
-    // Remove event listeners
     if (window.ethereum) {
         window.ethereum.removeListener('accountsChanged', handleAccountsChanged);
         window.ethereum.removeListener('chainChanged', handleChainChanged);
@@ -409,10 +365,8 @@ async function disconnectWallet() {
 
 function handleAccountsChanged(accounts) {
     if (accounts.length === 0) {
-        // User disconnected or switched accounts to none
         disconnectWallet();
     } else {
-        // User switched accounts
         const shortAddress = `${accounts[0].slice(0, 5)}...`;
         walletAddressDisplay.textContent = `Connected: ${shortAddress}`;
         localStorage.setItem('walletAddress', accounts[0]);
@@ -420,11 +374,9 @@ function handleAccountsChanged(accounts) {
 }
 
 function handleChainChanged(chainId) {
-    // Network changed, reload the page to ensure compatibility
     window.location.reload();
 }
 
-// Check if wallet was previously connected
 if (localStorage.getItem('walletConnected') === 'true') {
     connectWallet();
 }
@@ -432,16 +384,16 @@ if (localStorage.getItem('walletConnected') === 'true') {
 connectWalletButton.addEventListener('click', connectWallet);
 disconnectWalletButton.addEventListener('click', disconnectWallet);
 
-// Action Functions with Animations and Sound
+// Action Functions
 function buyFuelCredits() {
     document.getElementById('loader').style.display = 'block';
     setTimeout(() => {
         document.getElementById('loader').style.display = 'none';
-        fuelCredits += 10; // Add 10 fuel credits
+        fuelCredits += 10;
         smoothUpdate(creditsDisplay, fuelCredits);
         creditsWarning.textContent = fuelCredits <= 3 ? '(Low credits!)' : '';
-        tapButton.disabled = false; // Re-enable tap button
-        tapDisabledMessage.style.display = 'none'; // Hide disabled message
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
         updateStats();
         saveGameState();
     }, 2000);
@@ -468,18 +420,16 @@ function switchPaymentNetwork() {
     // Add your network switch logic here
 }
 
-// Reset game state
+// Reset Game State
 function resetGame() {
-    // Clear localStorage
     localStorage.removeItem('totalFuel');
     localStorage.removeItem('fuelCredits');
     localStorage.removeItem('totalTaps');
     localStorage.removeItem('powerUpsUsed');
     localStorage.removeItem('invitesSent');
 
-    // Reset game state variables
     totalFuel = 0;
-    fuelCredits = 10; // Start with 10 fuel credits
+    fuelCredits = 10;
     totalTaps = 0;
     tapCount = 0;
     fuelPerTap = 1;
@@ -487,7 +437,6 @@ function resetGame() {
     invitesSent = 0;
     isAutoDrillActive = false;
 
-    // Reset UI
     smoothUpdate(fuelDisplay, totalFuel);
     smoothUpdate(creditsDisplay, fuelCredits);
     smoothUpdate(powerupsDisplay, powerUpsUsed);
@@ -495,14 +444,13 @@ function resetGame() {
     smoothUpdate(document.getElementById('taps-display'), totalTaps);
     creditsWarning.textContent = '';
     tapButton.disabled = false;
-    tapButton.classList.remove('glowing'); // Remove glow effect if active
+    tapButton.classList.remove('glowing');
     tapDisabledMessage.style.display = 'none';
     turboBoosterButton.disabled = false;
     autoDrillButton.disabled = false;
     turboBoosterMessage.style.display = 'none';
     autoDrillMessage.style.display = 'none';
 
-    // Play sound and update stats
     clickSound.play();
     updateStats();
 }
