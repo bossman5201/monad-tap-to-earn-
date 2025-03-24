@@ -1,7 +1,7 @@
 body {
     font-family: Arial, sans-serif;
     text-align: center;
-    background: #6a0dad; /* Purple */
+    background: linear-gradient(to bottom, #1a0033, #000000); /* Milky Way gradient */
     color: #fff; /* White */
     margin: 0;
     padding: 0;
@@ -49,31 +49,21 @@ body {
     cursor: pointer;
     box-shadow: 5px 5px 10px rgba(0, 0, 0, 0.3), /* 3D shadow */
                 -5px -5px 10px rgba(255, 255, 255, 0.1);
-    transition: transform 0.2s, box-shadow 0.2s;
-    animation: pulseButton 2s infinite; /* Pulsing animation */
+    transition: all 0.3s ease; /* Smooth transition */
 }
 
 #connect-wallet:hover, #disconnect-wallet:hover {
-    transform: translateY(-2px); /* Lift effect on hover */
-    box-shadow: 8px 8px 15px rgba(0, 0, 0, 0.4),
-                -8px -8px 15px rgba(255, 255, 255, 0.2);
+    transform: scale(1.05); /* Scale up on hover */
+    background: #7b2cbf; /* Lighter purple */
 }
 
 #connect-wallet:active, #disconnect-wallet:active {
-    transform: translateY(2px); /* Press effect on click */
-    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2),
-                -2px -2px 5px rgba(255, 255, 255, 0.1);
+    transform: scale(0.95); /* Scale down on click */
 }
 
 #disconnect-wallet {
     background: #ff4500; /* Red background for disconnect */
     margin-left: 10px;
-}
-
-@keyframes pulseButton {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.05); }
-    100% { transform: scale(1); }
 }
 
 /* Tap Button Container for Centering with Flexbox */
@@ -105,14 +95,17 @@ body {
     text-shadow: 
         2px 2px 0 #000, 
         -2px -2px 0 #000; /* Slight 3D effect */
-    box-shadow: 
-        5px 5px 10px rgba(0, 0, 0, 0.5); /* Shadow for depth */
-    transition: transform 0.1s, opacity 0.3s, box-shadow 0.3s;
+    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5); /* Glow effect */
+    transition: all 0.3s ease; /* Smooth transition */
+}
+
+#tap-button:hover {
+    transform: scale(1.1); /* Scale up on hover */
+    box-shadow: 0 0 30px rgba(255, 255, 255, 0.8); /* Enhanced glow */
 }
 
 #tap-button:active {
-    transform: scale(1.1);
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+    transform: scale(1.05); /* Slightly smaller scale on click */
 }
 
 #tap-button:disabled {
@@ -159,31 +152,25 @@ body {
 
 /* Stats Styling and Animation */
 .stats {
-    margin: 20px auto; /* Center the stats */
-    padding: 10px; /* Reduced from 15px */
-    background: #fff; /* White background */
-    color: #000; /* Black text */
-    border-radius: 15px; /* Rounded corners */
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); /* 3D effect */
-    display: inline-block;
-    position: relative;
-    animation: float 3s ease-in-out infinite; /* Floating animation */
-}
-
-/* Floating Animation */
-@keyframes float {
-    0% { transform: translateY(0); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0); }
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    flex-wrap: wrap;
+    margin: 20px auto;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.1); /* Semi-transparent white */
+    border: 1px solid #fff;
+    border-radius: 10px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
 }
 
 /* Individual Stats */
 .stat-item {
-    font-size: 20px; /* Reduced from 24px */
-    font-weight: bold; /* Bolder text */
-    margin: 10px 0; /* Spacing */
-    color: #6a0dad; /* Purple theme */
-    transition: transform 0.3s, color 0.3s; /* Smooth transitions */
+    font-size: 20px;
+    font-weight: bold;
+    margin: 10px;
+    color: #fff; /* White for better visibility */
+    transition: all 0.3s ease; /* Smooth transitions */
 }
 
 /* Highlight on Update */
@@ -220,18 +207,18 @@ body {
     background: #6a0dad; /* Purple */
     color: #fff; /* White */
     border: none;
-    border-radius: 5px;
+    border-radius: 8px; /* Consistent with other buttons */
     box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    transition: transform 0.2s, background 0.2s, opacity 0.3s;
+    transition: all 0.3s ease; /* Smooth transition */
 }
 
 .action-buttons button:hover {
-    transform: scale(1.05);
     background: #7b2cbf; /* Lighter purple */
+    transform: scale(1.05); /* Scale up on hover */
 }
 
 .action-buttons button:active {
-    transform: scale(0.95);
+    transform: scale(0.95); /* Scale down on click */
 }
 
 .action-buttons button:disabled {
