@@ -170,25 +170,31 @@ async function connectWallet() {
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
 
-        // Check current chain
+        // Get current chain ID
         const chainId = await provider.getNetwork().then(net => net.chainId);
-        console.log('Current Chain ID:', chainId, 'Expected:', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
+        console.log('Initial Chain ID (decimal):', chainId);
+        console.log('Expected Chain ID (decimal):', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
+        console.log('Initial Chain ID (hex):', '0x' + chainId.toString(16));
+
         if (chainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
+            console.log('Already on Monad Testnet!');
             tapButton.disabled = false;
             tapDisabledMessage.style.display = 'none';
         } else {
-            // One chance to switch
+            console.log('Not on Monad Testnet, prompting switch...');
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
             });
-            // Verify after switch attempt
             const newChainId = await provider.getNetwork().then(net => net.chainId);
-            console.log('New Chain ID after switch:', newChainId);
+            console.log('New Chain ID after switch (decimal):', newChainId);
+            console.log('New Chain ID (hex):', '0x' + newChainId.toString(16));
             if (newChainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
+                console.log('Switched to Monad Testnet successfully!');
                 tapButton.disabled = false;
                 tapDisabledMessage.style.display = 'none';
             } else {
+                console.log('Switch failed or canceled.');
                 tapButton.disabled = true;
                 tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
                 tapDisabledMessage.style.display = 'block';
