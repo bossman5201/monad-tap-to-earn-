@@ -1,4 +1,4 @@
-// Supercharged Milky Way Background
+// Supercharged Milky Way Background with Lower Core Brightness
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -60,8 +60,8 @@ let time = 0;
 
 function animateMilkyWay() {
     const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius * 1.5);
-    gradient.addColorStop(0, 'rgba(180, 140, 255, 0.4)');
-    gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.2)');
+    gradient.addColorStop(0, 'rgba(180, 140, 255, 0.15)'); // Lowered brightness
+    gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.1)'); // Softer fade
     gradient.addColorStop(1, 'rgba(10, 0, 26, 1)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -143,7 +143,7 @@ const donateButton = document.getElementById('donate-button');
 const donateModal = document.getElementById('donate-modal');
 const closeDonate = document.getElementById('close-donate');
 const donateAddress = document.getElementById('donate-address');
-const copyAddressButton = document.getElementById('copy-address'); // New!
+const copyAddressButton = document.getElementById('copy-address');
 const tapSound = document.getElementById('tap-sound');
 const clickSound = document.getElementById('click-sound');
 
@@ -268,8 +268,8 @@ closeDonate.addEventListener('click', () => {
     donateModal.style.display = 'none';
     clickSound.play();
 });
-donateAddress.textContent = '0xYourMainnetETHAddress'; // Replace with yours
-copyAddressButton.addEventListener('click', () => { // New!
+// Address now in HTML, no need to set here
+copyAddressButton.addEventListener('click', () => {
     const address = donateAddress.textContent;
     navigator.clipboard.writeText(address).then(() => {
         copyAddressButton.textContent = 'Copied!';
