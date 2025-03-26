@@ -1,4 +1,3 @@
-<html lang="en">
 // Supercharged Milky Way Background with Lower Core Brightness
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
