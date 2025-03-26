@@ -1,3 +1,4 @@
+<!DOCTYPE html>
 // Supercharged Milky Way Background with Lower Core Brightness
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
@@ -154,7 +155,7 @@ let account;
 
 // Monad Testnet Config
 const MONAD_TESTNET_CHAIN_ID = '0x27cf'; // Chain ID 10143 in decimal
-const MONAD_TESTNET_RPC = 'https://monad-testnet.g.alchemy.com/v2/demo';
+const MONAD_TESTNET_RPC = 'https://testnet-rpc.monad.xyz/';
 
 // Wallet Connection
 async function connectWallet() {
@@ -195,7 +196,7 @@ async function switchToMonadTestnet() {
                         chainName: 'Monad Testnet',
                         rpcUrls: [MONAD_TESTNET_RPC],
                         nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                        blockExplorerUrls: ['https://testnet.monadexplorer.com']
+                        blockExplorerUrls: ['https://testnet.monadexplorer.com/']
                     }],
                 });
             } catch (addError) {
