@@ -143,6 +143,7 @@ const donateButton = document.getElementById('donate-button');
 const donateModal = document.getElementById('donate-modal');
 const closeDonate = document.getElementById('close-donate');
 const donateAddress = document.getElementById('donate-address');
+const copyAddressButton = document.getElementById('copy-address'); // New!
 const tapSound = document.getElementById('tap-sound');
 const clickSound = document.getElementById('click-sound');
 
@@ -268,6 +269,14 @@ closeDonate.addEventListener('click', () => {
     clickSound.play();
 });
 donateAddress.textContent = '0xYourMainnetETHAddress'; // Replace with yours
+copyAddressButton.addEventListener('click', () => { // New!
+    const address = donateAddress.textContent;
+    navigator.clipboard.writeText(address).then(() => {
+        copyAddressButton.textContent = 'Copied!';
+        clickSound.play();
+        setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
+    }).catch(err => console.error('Copy failed:', err));
+});
 
 // Event Listeners
 tapButton.addEventListener('click', handleTap);
