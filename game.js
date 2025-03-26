@@ -172,7 +172,8 @@ async function connectWallet() {
 
         // Check current chain
         const chainId = await provider.getNetwork().then(net => net.chainId);
-        if (chainId.toString(16) === MONAD_TESTNET_CHAIN_ID.slice(2)) {
+        console.log('Current Chain ID:', chainId, 'Expected:', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
+        if (chainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
             tapButton.disabled = false;
             tapDisabledMessage.style.display = 'none';
         } else {
@@ -183,7 +184,8 @@ async function connectWallet() {
             });
             // Verify after switch attempt
             const newChainId = await provider.getNetwork().then(net => net.chainId);
-            if (newChainId.toString(16) === MONAD_TESTNET_CHAIN_ID.slice(2)) {
+            console.log('New Chain ID after switch:', newChainId);
+            if (newChainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
                 tapButton.disabled = false;
                 tapDisabledMessage.style.display = 'none';
             } else {
