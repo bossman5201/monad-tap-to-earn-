@@ -154,7 +154,6 @@ let account;
 
 // Monad Testnet Config
 const MONAD_TESTNET_CHAIN_ID = '0x27cf'; // Chain ID 10143 in decimal
-const MONAD_TESTNET_RPC = 'https://testnet-rpc.monad.xyz/';
 
 // Wallet Connection
 async function connectWallet() {
@@ -170,42 +169,39 @@ async function connectWallet() {
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 5)}...`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
-        await switchToMonadTestnet();
-        tapButton.disabled = false;
-        tapDisabledMessage.style.display = 'none';
+
+        // Check current chain
+        const chainId = await provider.getNetwork().then(net => net.chainId);
+        if (chainId.toString(16) === MONAD_TESTNET_CHAIN_ID.slice(2)) {
+            tapButton.disabled = false;
+            tapDisabledMessage.style.display = 'none';
+        } else {
+            // One chance to switch
+            await window.ethereum.request({
+                method: 'wallet_switchEthereumChain',
+                params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
+            });
+            // Verify after switch attempt
+            const newChainId = await provider.getNetwork().then(net => net.chainId);
+            if (newChainId.toString(16) === MONAD_TESTNET_CHAIN_ID.slice(2)) {
+                tapButton.disabled = false;
+                tapDisabledMessage.style.display = 'none';
+            } else {
+                tapButton.disabled = true;
+                tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
+                tapDisabledMessage.style.display = 'block';
+            }
+        }
     } catch (error) {
         console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + error.message);
-    }
-}
-
-async function switchToMonadTestnet() {
-    try {
-        await window.ethereum.request({
-            method: 'wallet_switchEthereumChain',
-            params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
-        });
-    } catch (switchError) {
-        if (switchError.code === 4902) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_addEthereumChain',
-                    params: [{
-                        chainId: MONAD_TESTNET_CHAIN_ID,
-                        chainName: 'Monad Testnet',
-                        rpcUrls: [MONAD_TESTNET_RPC],
-                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                        blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-                    }],
-                });
-            } catch (addError) {
-                console.error('Failed to add Monad Testnet:', addError);
-                alert('Failed to add Monad Testnet: ' + addError.message);
-            }
+        if (error.code === 4902) {
+            alert('Monad Testnet not found in MetaMask. Please add it manually!');
         } else {
-            console.error('Switch failed:', switchError);
-            alert('Switch failed: ' + switchError.message);
+            alert('Failed to connect wallet: ' + error.message);
         }
+        tapButton.disabled = true;
+        tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
+        tapDisabledMessage.style.display = 'block';
     }
 }
 
@@ -305,6 +301,7 @@ disconnectWalletButton.addEventListener('click', () => {
     connectWalletButton.style.display = 'inline-block';
     disconnectWalletButton.style.display = 'none';
     tapButton.disabled = true;
+    tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
     tapDisabledMessage.style.display = 'block';
     clickSound.play();
 });
