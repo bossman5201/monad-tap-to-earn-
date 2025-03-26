@@ -180,11 +180,7 @@ body {
     word-break: break-all;
 }
 
-#donate-qr {
-    margin: 10px 0;
-}
-
-#copy-address { /* New! */
+#copy-address {
     background-color: #6a0dad;
     color: white;
     padding: 8px 16px;
@@ -195,7 +191,7 @@ body {
     margin: 10px 0;
 }
 
-#copy-address:hover { /* New! */
+#copy-address:hover {
     background-color: #8a2be2;
     transform: scale(1.05);
 }
