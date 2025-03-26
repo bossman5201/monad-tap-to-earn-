@@ -60,8 +60,8 @@ let time = 0;
 
 function animateMilkyWay() {
     const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius * 1.5);
-    gradient.addColorStop(0, 'rgba(180, 140, 255, 0.15)'); // Lowered brightness
-    gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.1)'); // Softer fade
+    gradient.addColorStop(0, 'rgba(180, 140, 255, 0.15)');
+    gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.1)');
     gradient.addColorStop(1, 'rgba(10, 0, 26, 1)');
     ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -148,25 +148,35 @@ const tapSound = document.getElementById('tap-sound');
 const clickSound = document.getElementById('click-sound');
 
 // Ethers.js Setup
-let provider, signer;
+let provider;
+let signer;
+let account;
 
 // Monad Testnet Config
-const MONAD_TESTNET_CHAIN_ID = '0x[YourChainID]'; // From docs.monad.xyz
-const MONAD_TESTNET_RPC = 'https://testnet.monad.xyz'; // Placeholder
+const MONAD_TESTNET_CHAIN_ID = '0x27cf'; // Chain ID 10143 in decimal
+const MONAD_TESTNET_RPC = 'https://monad-testnet.g.alchemy.com/v2/demo';
 
 // Wallet Connection
 async function connectWallet() {
-    if (!window.ethereum) return alert('Install MetaMask!');
-    provider = new ethers.providers.Web3Provider(window.ethereum);
-    await provider.send("eth_requestAccounts", []);
-    signer = provider.getSigner();
-    const address = await signer.getAddress();
-    walletAddressDisplay.textContent = `Connected: ${address.slice(0, 5)}...`;
-    connectWalletButton.style.display = 'none';
-    disconnectWalletButton.style.display = 'inline-block';
-    await switchToMonadTestnet();
-    tapButton.disabled = false;
-    tapDisabledMessage.style.display = 'none';
+    if (!window.ethereum) {
+        alert('Please install MetaMask!');
+        return;
+    }
+    try {
+        provider = new ethers.providers.Web3Provider(window.ethereum);
+        await provider.send('eth_requestAccounts', []);
+        signer = provider.getSigner();
+        account = await signer.getAddress();
+        walletAddressDisplay.textContent = `Connected: ${account.slice(0, 5)}...`;
+        connectWalletButton.style.display = 'none';
+        disconnectWalletButton.style.display = 'inline-block';
+        await switchToMonadTestnet();
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
+    } catch (error) {
+        console.error('Wallet connection failed:', error);
+        alert('Failed to connect wallet: ' + error.message);
+    }
 }
 
 async function switchToMonadTestnet() {
@@ -177,28 +187,36 @@ async function switchToMonadTestnet() {
         });
     } catch (switchError) {
         if (switchError.code === 4902) {
-            await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                    chainId: MONAD_TESTNET_CHAIN_ID,
-                    chainName: 'Monad Testnet',
-                    rpcUrls: [MONAD_TESTNET_RPC],
-                    nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                    blockExplorerUrls: ['https://explorer.monad.xyz'] // Check docs
-                }],
-            });
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: MONAD_TESTNET_CHAIN_ID,
+                        chainName: 'Monad Testnet',
+                        rpcUrls: [MONAD_TESTNET_RPC],
+                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                        blockExplorerUrls: ['https://testnet.monadexplorer.com']
+                    }],
+                });
+            } catch (addError) {
+                console.error('Failed to add Monad Testnet:', addError);
+                alert('Failed to add Monad Testnet: ' + addError.message);
+            }
+        } else {
+            console.error('Switch failed:', switchError);
+            alert('Switch failed: ' + switchError.message);
         }
     }
 }
 
 // Tap with Monad Transaction
-const CONTRACT_ADDRESS = '0x[YourDeployedContract]';
+const CONTRACT_ADDRESS = '0x[YourDeployedContract]'; // Replace with your contract
 const ABI = [
-    "function tap() external",
-    "function totalFuel(address) view returns (uint256)"
+    {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
 ];
 async function handleTap() {
-    if (!signer) {
+    if (!provider || !signer) {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
         return;
@@ -221,8 +239,7 @@ async function handleTap() {
 }
 
 async function fetchFuelFromContract(contract) {
-    const address = await signer.getAddress();
-    totalFuel = await contract.totalFuel(address);
+    totalFuel = (await contract.totalFuel(account)).toString();
     smoothUpdate(fuelDisplay, totalFuel);
 }
 
@@ -268,7 +285,6 @@ closeDonate.addEventListener('click', () => {
     donateModal.style.display = 'none';
     clickSound.play();
 });
-// Address now in HTML, no need to set here
 copyAddressButton.addEventListener('click', () => {
     const address = donateAddress.textContent;
     navigator.clipboard.writeText(address).then(() => {
@@ -284,6 +300,7 @@ connectWalletButton.addEventListener('click', connectWallet);
 disconnectWalletButton.addEventListener('click', () => {
     provider = null;
     signer = null;
+    account = null;
     walletAddressDisplay.textContent = '';
     connectWalletButton.style.display = 'inline-block';
     disconnectWalletButton.style.display = 'none';
