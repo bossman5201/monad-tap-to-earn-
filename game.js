@@ -173,31 +173,61 @@ async function connectWallet() {
         // Check current chain
         const chainId = await provider.getNetwork().then(net => net.chainId);
         console.log('Current Chain ID:', chainId, 'Expected:', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
-        if (chainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
+        const expectedChainId = parseInt(MONAD_TESTNET_CHAIN_ID, 16);
+        if (chainId === expectedChainId) {
             tapButton.disabled = false;
             tapDisabledMessage.style.display = 'none';
         } else {
-            // One chance to switch
-            await window.ethereum.request({
-                method: 'wallet_switchEthereumChain',
-                params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
-            });
-            // Verify after switch attempt
-            const newChainId = await provider.getNetwork().then(net => net.chainId);
-            if (newChainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
-                tapButton.disabled = false;
-                tapDisabledMessage.style.display = 'none';
-            } else {
-                tapButton.disabled = true;
-                tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
-                tapDisabledMessage.style.display = 'block';
+            // Only attempt switch if chain ID doesn't match
+            try {
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
+                });
+                const newChainId = await provider.getNetwork().then(net => net.chainId);
+                if (newChainId === expectedChainId) {
+                    tapButton.disabled = false;
+                    tapDisabledMessage.style.display = 'none';
+                } else {
+                    tapButton.disabled = true;
+                    tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
+                    tapDisabledMessage.style.display = 'block';
+                }
+            } catch (switchError) {
+                console.error('Switch failed:', switchError);
+                if (switchError.code === 4902) {
+                    // Chain not added, prompt to add it
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [{
+                            chainId: MONAD_TESTNET_CHAIN_ID,
+                            chainName: 'Monad Testnet',
+                            rpcUrls: ['https://testnet-rpc.monad.xyz/'],
+                            nativeCurrency: {
+                                name: 'MON',
+                                symbol: 'MON',
+                                decimals: 18
+                            },
+                            blockExplorerUrls: ['https://testnet.monadexplorer.com/']
+                        }],
+                    });
+                    const newChainId = await provider.getNetwork().then(net => net.chainId);
+                    if (newChainId === expectedChainId) {
+                        tapButton.disabled = false;
+                        tapDisabledMessage.style.display = 'none';
+                    } else {
+                        tapButton.disabled = true;
+                        tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
+                        tapDisabledMessage.style.display = 'block';
+                    }
+                } else {
+                    throw switchError;
+                }
             }
         }
     } catch (error) {
         console.error('Wallet connection failed:', error);
-        if (error.code === 4902) {
-            alert('Monad Testnet not found in MetaMask. Please ensure it’s added with chain ID 10143 and RPC https://testnet-rpc.monad.xyz/');
-        } else {
+        if (error.code !== 4902) {
             alert('Failed to connect wallet: ' + error.message);
         }
         tapButton.disabled = true;
