@@ -5,32 +5,36 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rocket Fuel Miner</title>
     <link rel="stylesheet" href="styles.css">
-    <script defer src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
+    <h1>Rocket Fuel Miner</h1>
     <canvas id="canvas"></canvas>
     <div id="particle-container"></div>
-    <h1>Rocket Fuel Miner</h1>
     <button id="connect-wallet">Connect Wallet</button>
     <button id="disconnect-wallet" style="display: none;">Disconnect</button>
-    <p id="wallet-address"></p>
+    <div id="wallet-address"></div>
     <button id="tap-button" disabled>M</button>
-    <p id="tap-disabled-message">Connect Wallet to Tap!</p>
-    <p>Fuel: <span id="fuel-display">0</span></p>
-    <p>Taps: <span id="taps-display">0</span></p>
-    <p>Invites: <span id="invites-display">0</span></p>
+    <div id="tap-disabled-message">Connect Wallet to Tap!</div>
+    <p id="fuel-display">0</p>
+    <p id="taps-display">0</p>
+    <p id="invites-display">0</p>
     <button id="donate-button">Donate</button>
+
     <div id="donate-modal" style="display: none;">
         <div class="modal-content">
-            <span id="close-donate">×</span>
-            <p>Support the project!</p>
-            <p id="donate-address">0x1234567890abcdef1234567890abcdef12345678</p>
+            <span id="close-donate">&times;</span>
+            <h2>Support the Project</h2>
+            <p>Send ETH to:</p>
+            <p id="donate-address">0xYourDonateAddressHere</p>
             <button id="copy-address">Copy Address</button>
             <button id="back-to-game">Back to Game</button>
         </div>
     </div>
+
     <audio id="tap-sound" src="tap.mp3"></audio>
     <audio id="click-sound" src="click.mp3"></audio>
+
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.umd.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
