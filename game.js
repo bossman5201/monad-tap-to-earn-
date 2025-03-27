@@ -157,75 +157,48 @@ const MONAD_TESTNET_CHAIN_ID = '0x27cf'; // Chain ID 10143 in decimal
 
 // Wallet Connection
 async function connectWallet() {
-    console.log('connectWallet started');
     if (!window.ethereum) {
-        console.log('MetaMask not detected');
         alert('Please install MetaMask!');
         return;
     }
-    if (typeof ethers === 'undefined') {
-        console.log('Ethers.js not loaded');
-        alert('Ethers.js not loaded—check script!');
-        return;
-    }
     try {
-        console.log('Setting up provider...');
-        provider = new ethers.providers.Web3Provider(window.ethereum, 'any');
-        console.log('Requesting accounts...');
+        provider = new ethers.providers.Web3Provider(window.ethereum);
         await provider.send('eth_requestAccounts', []);
         signer = provider.getSigner();
         account = await signer.getAddress();
-        console.log('Account connected:', account);
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 5)}...`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
 
-        // Get chain ID via Ethers
-        const network = await provider.getNetwork();
-        const chainId = network.chainId;
-        console.log('Ethers chainId (raw):', chainId);
-        console.log('Ethers chainId type:', typeof chainId);
-        console.log('Ethers chainId as hex:', '0x' + chainId.toString(16));
-        console.log('Expected chainId (decimal):', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
-
-        // Fallback: Raw MetaMask call
-        const rawChainId = await window.ethereum.request({ method: 'eth_chainId' });
-        console.log('Raw MetaMask chainId:', rawChainId);
-        console.log('Raw chainId type:', typeof rawChainId);
-
-        const expectedChainId = parseInt(MONAD_TESTNET_CHAIN_ID, 16); // 10143
-        if (chainId === expectedChainId || parseInt(rawChainId, 16) === expectedChainId) {
-            console.log('Chain ID matches Monad Testnet (10143)');
+        // Check current chain
+        const chainId = await provider.getNetwork().then(net => net.chainId);
+        console.log('Current Chain ID:', chainId, 'Expected:', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
+        if (chainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
             tapButton.disabled = false;
             tapDisabledMessage.style.display = 'none';
         } else {
-            console.log('Chain ID mismatch, prompting switch...');
+            // One chance to switch
             await window.ethereum.request({
                 method: 'wallet_switchEthereumChain',
                 params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
             });
-            const newNetwork = await provider.getNetwork();
-            const newChainId = newNetwork.chainId;
-            const newRawChainId = await window.ethereum.request({ method: 'eth_chainId' });
-            console.log('Post-switch Ethers chainId:', newChainId);
-            console.log('Post-switch raw chainId:', newRawChainId);
-            if (newChainId === expectedChainId || parseInt(newRawChainId, 16) === expectedChainId) {
-                console.log('Switched to Monad Testnet');
+            // Verify after switch attempt
+            const newChainId = await provider.getNetwork().then(net => net.chainId);
+            if (newChainId === parseInt(MONAD_TESTNET_CHAIN_ID, 16)) {
                 tapButton.disabled = false;
                 tapDisabledMessage.style.display = 'none';
             } else {
-                console.log('Switch failed');
                 tapButton.disabled = true;
                 tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
                 tapDisabledMessage.style.display = 'block';
             }
         }
     } catch (error) {
-        console.error('Connection error:', error);
+        console.error('Wallet connection failed:', error);
         if (error.code === 4902) {
-            alert('Monad Testnet not found in MetaMask. Add it manually!');
+            alert('Monad Testnet not found in MetaMask. Please add it manually with chain ID 10143!');
         } else {
-            alert('Wallet connect failed: ' + error.message);
+            alert('Failed to connect wallet: ' + error.message);
         }
         tapButton.disabled = true;
         tapDisabledMessage.textContent = 'Please switch to Monad Testnet to play!';
@@ -342,5 +315,3 @@ invitesSent = savedState.invitesSent || 0;
 fuelDisplay.textContent = totalFuel;
 tapsDisplay.textContent = totalTaps;
 invitesDisplay.textContent = invitesSent;
-
-console.log('game.js loaded');
