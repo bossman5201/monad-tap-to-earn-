@@ -163,6 +163,11 @@ const NETWORK_DETAILS = {
 
 // Wallet Connection
 async function connectWallet() {
+    if (typeof ethers === 'undefined') {
+        alert('Ethers.js failed to load. Please check your internet connection or try refreshing the page.');
+        return;
+    }
+
     if (!window.ethereum) {
         alert('Please install MetaMask!');
         return;
