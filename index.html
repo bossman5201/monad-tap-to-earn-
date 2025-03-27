@@ -19,7 +19,19 @@
         <p id="tap-disabled-message">Connect Wallet to Tap!</p>
         <p>Fuel: <span id="fuel-display">0</span></p>
         <p>Taps: <span id="taps-display">0</span></p>
+        <p>Invites: <span id="invites-display">0</span></p>
+        <button id="donate-button">Donate</button>
     </div>
+    <div id="donate-modal" style="display: none;">
+        <div class="modal-content">
+            <span id="close-donate">&times;</span>
+            <p>Support the project!</p>
+            <p id="donate-address">0xYourDonateAddressHere</p>
+            <button id="copy-address">Copy Address</button>
+        </div>
+    </div>
+    <audio id="tap-sound" src="tap.mp3"></audio>
+    <audio id="click-sound" src="click.mp3"></audio>
     <script src="game.js"></script>
 </body>
 </html>
