@@ -1,4 +1,4 @@
-// Canvas Background Animation (unchanged)
+// Canvas Background Animation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -126,7 +126,7 @@ animateMilkyWay();
 
 // Game State
 let totalFuel = 0;
-let totalTaps = 100; // Initialize with 100 taps for testing
+let totalTaps = 0;
 let invitesSent = 0;
 
 // DOM Elements
@@ -210,9 +210,6 @@ async function connectWallet() {
         disconnectWalletButton.style.display = 'inline-block';
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
-
-        // Fetch initial stats after connecting
-        await updateStats();
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + error.message);
@@ -249,25 +246,16 @@ async function handleTap() {
         tapDisabledMessage.style.display = 'block';
         return;
     }
-
-    // Check if there are taps available
-    if (totalTaps <= 0) {
-        tapDisabledMessage.textContent = 'No taps remaining!';
-        tapDisabledMessage.style.display = 'block';
-        tapButton.disabled = true;
-        return;
-    }
-
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     try {
         const tx = await contract.tap();
         await tx.wait();
-        totalTaps--; // Decrement taps locally
+        totalTaps++;
         tapSound.play();
         spawnParticles();
         totalFuel = (await contract.totalFuel(account)).toString();
-        smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
-        smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
+        smoothUpdate(fuelDisplay, totalFuel);
+        smoothUpdate(tapsDisplay, totalTaps);
         updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
@@ -277,18 +265,8 @@ async function handleTap() {
 }
 
 // Stats Update
-async function updateStats() {
-    if (provider && signer && account) {
-        try {
-            const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-            totalFuel = (await contract.totalFuel(account)).toString();
-        } catch (error) {
-            console.error('Failed to fetch stats:', error);
-        }
-    }
-    fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
-    tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
-    invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
+function updateStats() {
+    invitesDisplay.textContent = invitesSent;
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
@@ -352,8 +330,8 @@ disconnectWalletButton.addEventListener('click', disconnectWallet);
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 100; // Default to 100 taps for testing
+totalTaps = savedState.totalTaps || 0;
 invitesSent = savedState.invitesSent || 0;
-fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
-tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
-invitesDisplay.textContent = `Invites Sent: 
+fuelDisplay.textContent = totalFuel;
+tapsDisplay.textContent = totalTaps;
+invitesDisplay.textContent = invitesSent;
