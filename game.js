@@ -167,18 +167,33 @@ const MONAD_TESTNET = {
 
 // Wallet Connection with Network Check
 async function connectWallet() {
+    // Check if Ethers.js is loaded
     if (typeof ethers === 'undefined') {
+        console.error('Ethers.js is not loaded.');
         alert('Ethers.js failed to load. Please check if ethers-5.7.2.umd.min.js is in the correct directory.');
         return;
     }
 
+    // Check if MetaMask is installed
     if (!window.ethereum) {
-        alert('Please install MetaMask!');
+        console.error('MetaMask is not installed.');
+        alert('Please install MetaMask to connect your wallet!');
         return;
     }
 
     try {
+        // Request accounts to trigger MetaMask popup
+        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        if (!accounts || accounts.length === 0) {
+            throw new Error('No accounts returned from MetaMask.');
+        }
+
+        // Initialize provider and signer
         provider = new ethers.providers.Web3Provider(window.ethereum);
+        signer = provider.getSigner();
+        account = await signer.getAddress();
+
+        // Check the current network
         const network = await provider.getNetwork();
         const expectedChainId = 10143; // Monad Testnet chain ID
 
@@ -202,9 +217,7 @@ async function connectWallet() {
             }
         }
 
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        signer = provider.getSigner();
-        account = await signer.getAddress();
+        // Update UI after successful connection
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
@@ -212,7 +225,7 @@ async function connectWallet() {
         tapDisabledMessage.style.display = 'none';
     } catch (error) {
         console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + error.message);
+        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
         tapButton.disabled = true;
         tapDisabledMessage.textContent = 'Please connect to the Monad Testnet (Chain ID: 10143)!';
         tapDisabledMessage.style.display = 'block';
