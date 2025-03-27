@@ -165,25 +165,32 @@ const MONAD_TESTNET = {
     blockExplorerUrls: ['https://testnet.monadexplorer.com']
 };
 
-// Wallet Connection with Network Check
+// Wallet Connection with Debugging
 async function connectWallet() {
+    console.log('connectWallet function called'); // Debug: Check if the function is triggered
+
     // Check if Ethers.js is loaded
     if (typeof ethers === 'undefined') {
         console.error('Ethers.js is not loaded.');
         alert('Ethers.js failed to load. Please check if ethers-5.7.2.umd.min.js is in the correct directory.');
         return;
     }
+    console.log('Ethers.js is loaded'); // Debug: Confirm Ethers.js is available
 
     // Check if MetaMask is installed
     if (!window.ethereum) {
-        console.error('MetaMask is not installed.');
+        console.error('MetaMask is not installed or not detected.');
         alert('Please install MetaMask to connect your wallet!');
         return;
     }
+    console.log('MetaMask detected:', window.ethereum); // Debug: Confirm MetaMask is detected
 
     try {
         // Request accounts to trigger MetaMask popup
+        console.log('Requesting accounts from MetaMask...'); // Debug: Before requesting accounts
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+        console.log('Accounts received:', accounts); // Debug: After requesting accounts
+
         if (!accounts || accounts.length === 0) {
             throw new Error('No accounts returned from MetaMask.');
         }
@@ -192,25 +199,29 @@ async function connectWallet() {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         account = await signer.getAddress();
+        console.log('Account connected:', account); // Debug: Confirm account is connected
 
         // Check the current network
         const network = await provider.getNetwork();
         const expectedChainId = 10143; // Monad Testnet chain ID
+        console.log('Current network chain ID:', network.chainId); // Debug: Log current chain ID
 
         if (network.chainId !== expectedChainId) {
+            console.log('Switching to Monad Testnet (chain ID 10143)...'); // Debug: Before network switch
             try {
-                // Try to switch to Monad Testnet
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: '0x27CB' }], // 10143 in hex
                 });
+                console.log('Successfully switched to Monad Testnet'); // Debug: After network switch
             } catch (switchError) {
-                // If the network isn't in MetaMask, add it
                 if (switchError.code === 4902) {
+                    console.log('Adding Monad Testnet to MetaMask...'); // Debug: Before adding network
                     await window.ethereum.request({
                         method: 'wallet_addEthereumChain',
                         params: [MONAD_TESTNET],
                     });
+                    console.log('Monad Testnet added to MetaMask'); // Debug: After adding network
                 } else {
                     throw switchError;
                 }
@@ -337,7 +348,10 @@ copyAddressButton.addEventListener('click', () => {
 
 // Event Listeners
 tapButton.addEventListener('click', handleTap);
-connectWalletButton.addEventListener('click', connectWallet);
+connectWalletButton.addEventListener('click', () => {
+    console.log('Connect Wallet button clicked'); // Debug: Confirm button click
+    connectWallet();
+});
 disconnectWalletButton.addEventListener('click', disconnectWallet);
 
 // Load Game State
