@@ -174,13 +174,46 @@ const walletIcons = {
     'default': 'https://via.placeholder.com/40?text=Wallet'
 };
 
-window.addEventListener('eip6963:announceProvider', (event) => {
-    const { info, provider } = event.detail;
-    detectedWallets.push({ info, provider });
-    updateWalletList();
-});
+// Fallback to window.ethereum if EIP-6963 fails
+async function detectWallets() {
+    // EIP-6963 Detection
+    window.addEventListener('eip6963:announceProvider', (event) => {
+        const { info, provider } = event.detail;
+        detectedWallets.push({ info, provider });
+        updateWalletList();
+    });
 
-window.dispatchEvent(new Event('eip6963:requestProvider'));
+    window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+    // Fallback to window.ethereum
+    if (window.ethereum && detectedWallets.length === 0) {
+        const provider = window.ethereum;
+        let walletName = 'MetaMask'; // Default assumption
+        if (provider.isMetaMask) {
+            walletName = 'MetaMask';
+        } else if (provider.isOkxWallet) {
+            walletName = 'OKX Wallet';
+        } else if (provider.isPhantom) {
+            walletName = 'Phantom';
+        } else if (provider.isRabby) {
+            walletName = 'Rabby';
+        } else if (provider.isZerion) {
+            walletName = 'Zerion';
+        }
+        detectedWallets.push({
+            info: { name: walletName, uuid: 'window.ethereum' },
+            provider: provider
+        });
+        updateWalletList();
+    }
+
+    // If no wallets detected after a timeout, prompt user
+    setTimeout(() => {
+        if (detectedWallets.length === 0) {
+            alert('No wallet detected. Please ensure a wallet like MetaMask, OKX Wallet, or Phantom is installed.');
+        }
+    }, 2000);
+}
 
 function updateWalletList() {
     walletList.innerHTML = '';
@@ -206,6 +239,7 @@ async function connectWallet(uuid) {
     provider = new ethers.providers.Web3Provider(wallet.provider);
 
     try {
+        // Request accounts to trigger wallet popup
         const accounts = await provider.send('eth_requestAccounts', []);
         signer = provider.getSigner();
         account = accounts[0];
@@ -217,7 +251,7 @@ async function connectWallet(uuid) {
                 await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]);
             } catch (switchError) {
                 alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
-                tapButton.disabled = true;
+                tapButton.classList.add('disabled');
                 tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
                 tapDisabledMessage.style.display = 'block';
                 return;
@@ -227,7 +261,7 @@ async function connectWallet(uuid) {
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
-        tapButton.disabled = false;
+        tapButton.classList.remove('disabled');
         tapDisabledMessage.style.display = 'none';
         walletModal.style.display = 'none';
 
@@ -239,7 +273,7 @@ async function connectWallet(uuid) {
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
-        tapButton.disabled = true;
+        tapButton.classList.add('disabled');
         tapDisabledMessage.textContent = 'Please connect to the Monad Testnet (Chain ID: 10143)!';
         tapDisabledMessage.style.display = 'block';
     }
@@ -273,12 +307,12 @@ async function authorizeTaps() {
         await tx.wait();
         authorizedTaps = tapCount;
         authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
-        tapButton.disabled = false;
+        tapButton.classList.remove('disabled');
         tapDisabledMessage.style.display = 'none';
         authorizeMoreTapsButton.style.display = 'none';
     } catch (error) {
         console.error('Authorization failed:', error);
-        tapButton.disabled = true;
+        tapButton.classList.add('disabled');
         tapDisabledMessage.textContent = 'Authorization failed—please try again!';
         tapDisabledMessage.style.display = 'block';
     }
@@ -297,7 +331,7 @@ async function disconnectWallet() {
     walletAddressDisplay.textContent = '';
     connectWalletButton.style.display = 'inline-block';
     disconnectWalletButton.style.display = 'none';
-    tapButton.disabled = true;
+    tapButton.classList.add('disabled');
     tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
     tapDisabledMessage.style.display = 'block';
     authorizedTapsDisplay.textContent = `Authorized Taps Remaining: 0/10000`;
@@ -315,7 +349,7 @@ async function updateMonBalance() {
 }
 
 // Tap Handler
-const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d'; // Updated contract address
+const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
 const ABI = [
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -328,7 +362,7 @@ const ABI = [
 
 async function handleTap() {
     if (!provider || !signer || !contract || !signature) {
-        tapButton.disabled = true;
+        tapButton.classList.add('disabled');
         tapDisabledMessage.style.display = 'block';
         return;
     }
@@ -336,7 +370,7 @@ async function handleTap() {
     if (authorizedTaps <= 0) {
         tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
         tapDisabledMessage.style.display = 'block';
-        tapButton.disabled = true;
+        tapButton.classList.add('disabled');
         authorizeMoreTapsButton.style.display = 'inline-block';
         return;
     }
@@ -351,7 +385,7 @@ async function handleTap() {
     if (parseFloat(monBalance) < parseFloat(gasCost)) {
         tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
         tapDisabledMessage.style.display = 'block';
-        tapButton.disabled = true;
+        tapButton.classList.add('disabled');
         return;
     }
 
@@ -413,7 +447,7 @@ async function updateStats() {
 // Particle Effects (Tap Feedback Animation)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
-    for (let i = 0; i < 10; i++) { // Increased particles for more impact
+    for (let i = 0; i < 10; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         const size = Math.random() * 10 + 5;
@@ -438,6 +472,7 @@ function smoothUpdate(element, newValue) {
 
 // Event Listeners
 connectWalletButton.addEventListener('click', () => {
+    detectWallets();
     walletModal.style.display = 'flex';
 });
 
