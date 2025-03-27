@@ -1,4 +1,4 @@
-// Canvas Background Animation (unchanged, included for completeness)
+// Canvas Background Animation (unchanged)
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -126,7 +126,7 @@ animateMilkyWay();
 
 // Game State
 let totalFuel = 0;
-let totalTaps = 0;
+let totalTaps = 100; // Initialize with 100 taps for testing
 let invitesSent = 0;
 
 // DOM Elements
@@ -152,10 +152,23 @@ let provider;
 let signer;
 let account;
 
-// Wallet Connection
+// Monad Testnet Configuration
+const MONAD_TESTNET = {
+    chainId: '0x27CB', // 10143 in hex
+    chainName: 'Monad Testnet',
+    rpcUrls: ['https://testnet-rpc.monad.xyz/'],
+    nativeCurrency: {
+        name: 'MON',
+        symbol: 'MON',
+        decimals: 18
+    },
+    blockExplorerUrls: ['https://testnet.monadexplorer.com']
+};
+
+// Wallet Connection with Network Check
 async function connectWallet() {
     if (typeof ethers === 'undefined') {
-        alert('Ethers.js failed to load. Please check if ethers.min.js is in the correct directory.');
+        alert('Ethers.js failed to load. Please check if ethers-5.7.2.umd.min.js is in the correct directory.');
         return;
     }
 
@@ -166,6 +179,29 @@ async function connectWallet() {
 
     try {
         provider = new ethers.providers.Web3Provider(window.ethereum);
+        const network = await provider.getNetwork();
+        const expectedChainId = 10143; // Monad Testnet chain ID
+
+        if (network.chainId !== expectedChainId) {
+            try {
+                // Try to switch to Monad Testnet
+                await window.ethereum.request({
+                    method: 'wallet_switchEthereumChain',
+                    params: [{ chainId: '0x27CB' }], // 10143 in hex
+                });
+            } catch (switchError) {
+                // If the network isn't in MetaMask, add it
+                if (switchError.code === 4902) {
+                    await window.ethereum.request({
+                        method: 'wallet_addEthereumChain',
+                        params: [MONAD_TESTNET],
+                    });
+                } else {
+                    throw switchError;
+                }
+            }
+        }
+
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         signer = provider.getSigner();
         account = await signer.getAddress();
@@ -174,11 +210,14 @@ async function connectWallet() {
         disconnectWalletButton.style.display = 'inline-block';
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
+
+        // Fetch initial stats after connecting
+        await updateStats();
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + error.message);
         tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Please connect to the correct network!';
+        tapDisabledMessage.textContent = 'Please connect to the Monad Testnet (Chain ID: 10143)!';
         tapDisabledMessage.style.display = 'block';
     }
 }
@@ -210,16 +249,25 @@ async function handleTap() {
         tapDisabledMessage.style.display = 'block';
         return;
     }
+
+    // Check if there are taps available
+    if (totalTaps <= 0) {
+        tapDisabledMessage.textContent = 'No taps remaining!';
+        tapDisabledMessage.style.display = 'block';
+        tapButton.disabled = true;
+        return;
+    }
+
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     try {
         const tx = await contract.tap();
         await tx.wait();
-        totalTaps++;
+        totalTaps--; // Decrement taps locally
         tapSound.play();
         spawnParticles();
         totalFuel = (await contract.totalFuel(account)).toString();
-        smoothUpdate(fuelDisplay, totalFuel);
-        smoothUpdate(tapsDisplay, totalTaps);
+        smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+        smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
@@ -229,8 +277,18 @@ async function handleTap() {
 }
 
 // Stats Update
-function updateStats() {
-    invitesDisplay.textContent = invitesSent;
+async function updateStats() {
+    if (provider && signer && account) {
+        try {
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+            totalFuel = (await contract.totalFuel(account)).toString();
+        } catch (error) {
+            console.error('Failed to fetch stats:', error);
+        }
+    }
+    fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
+    tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
+    invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
@@ -294,8 +352,8 @@ disconnectWalletButton.addEventListener('click', disconnectWallet);
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 0;
+totalTaps = savedState.totalTaps || 100; // Default to 100 taps for testing
 invitesSent = savedState.invitesSent || 0;
-fuelDisplay.textContent = totalFuel;
-tapsDisplay.textContent = totalTaps;
-invitesDisplay.textContent = invitesSent;
+fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
+tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
+invitesDisplay.textContent = `Invites Sent: 
