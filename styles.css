@@ -19,11 +19,11 @@ body {
     transform: translate(-50%, -50%);
     text-align: center;
     color: white;
-    padding: 15px;
-    background: rgba(0, 0, 0, 0.4); /* Reduced opacity for better blending */
+    padding: 20px;
+    background: rgba(0, 0, 0, 0.5); /* Adjusted opacity for better blending */
     border-radius: 10px;
-    max-width: 300px; /* Limit width to avoid a "big" box */
-    box-shadow: 0 0 10px rgba(255, 255, 255, 0.2); /* Subtle glow */
+    max-width: 350px; /* Slightly larger but not too big */
+    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* Subtle glow */
 }
 
 button {
@@ -37,6 +37,26 @@ button {
     border-radius: 5px;
 }
 
+#tap-button {
+    font-size: 48px;
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    background-color: #ff4444;
+    color: white;
+    margin: 10px auto;
+    display: block;
+}
+
+#tap-button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+#tap-button:hover:not(:disabled) {
+    background-color: #cc0000;
+}
+
 button:disabled {
     background-color: #555;
     cursor: not-allowed;
@@ -47,7 +67,7 @@ button:hover:not(:disabled) {
 }
 
 p {
-    margin: 8px 0;
+    margin: 10px 0;
 }
 
 #tap-disabled-message {
