@@ -17,7 +17,9 @@ for (let i = 0; i < 250; i++) {
     const y = centerY + Math.sin(spiralAngle) * radius;
     const size = Math.random() * 4 + 1;
     const baseAlpha = Math.random() * 0.6 + 0.4;
-    const color = Math.random() < 0.2 ? '255, 200, 150' : Math.random() < 0.4 ? '255, 255, 200' : Math.random() < 0.7 ? '255, 255, 255' : '180, 200, 255';
+    const color = Math.random() < 0.2 ? '255, 200, 150' : Math.random() < 0.4 ? '255, 255, 200' : Math.random() < 0.7 ? '255, 255, 255'
+
+ : '180, 200, 255';
     fgStars.push({ x, y, size, baseAlpha, angle, radius, speed: Math.random() * 0.005 + 0.003, color });
 }
 
@@ -126,8 +128,9 @@ animateMilkyWay();
 
 // Game State
 let totalFuel = 0;
-let totalTaps = 100; // Initialize with 100 taps for testing
+let totalTaps = 0; // Will be fetched from the contract
 let invitesSent = 0;
+let tapLimit = 100; // Local tap limit for testing
 
 // DOM Elements
 const tapButton = document.getElementById('tap-button');
@@ -240,7 +243,7 @@ async function disconnectWallet() {
 }
 
 // Tap with Transaction
-const CONTRACT_ADDRESS = '0x1a55edebe68acb4509e1bf77deea5ce0dfdbbc58'; // Updated with your deployed contract address
+const CONTRACT_ADDRESS = '0x1a55edebe68acb4509e1bf77deea5ce0dfdbbc58'; // Your deployed contract address
 const ABI = [
     {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -254,19 +257,19 @@ async function handleTap() {
         return;
     }
 
-    // Check if there are taps available
-    if (totalTaps <= 0) {
+    // Check if there are taps remaining within the local limit
+    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    const currentTaps = Number(await contract.totalTaps(account));
+    if (currentTaps >= tapLimit) {
         tapDisabledMessage.textContent = 'No taps remaining!';
         tapDisabledMessage.style.display = 'block';
         tapButton.disabled = true;
         return;
     }
 
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     try {
         const tx = await contract.tap();
         await tx.wait();
-        totalTaps--; // Decrement taps after a successful tap
         tapSound.play();
         spawnParticles();
         // Fetch updated stats from the contract
@@ -323,7 +326,6 @@ function spawnParticles() {
 function smoothUpdate(element, newValue) {
     element.classList.add('updated');
     element.textContent = newValue;
-    setTimeout(() => element.classList.remove('updated'), 300);
 }
 
 // Donate Button Logic
@@ -362,7 +364,7 @@ disconnectWalletButton.addEventListener('click', disconnectWallet);
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 100; // Default to 100 taps for testing
+totalTaps = savedState.totalTaps || 0; // Will be overridden by contract value
 invitesSent = savedState.invitesSent || 0;
 fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
 tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
