@@ -51,11 +51,11 @@ h1 {
     top: 30%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 64px;
+    font-size: 120px; /* Larger "M" to fit the circle */
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    background-color: #ff4444;
+    background-color: #6a0dad; /* Purple to match game theme */
     color: white;
     margin: 10px auto;
     display: block;
@@ -69,7 +69,7 @@ h1 {
 }
 
 #tap-button:hover:not(:disabled) {
-    background-color: #cc0000;
+    background-color: #4b0082; /* Darker purple on hover */
 }
 
 #tap-disabled-message {
