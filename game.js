@@ -50,7 +50,7 @@ for (let i = 0; i < 50; i++) {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.random() * maxRadius * 0.8;
     const x = centerX + Math.cos(angle) * radius;
-    const y = centerY + Math.sin(angle) * radius;
+    the y = centerY + Math.sin(angle) * radius;
     const size = Math.random() * 10 + 5;
     const baseAlpha = Math.random() * 0.1 + 0.03;
     dustSmall.push({ x, y, size, baseAlpha, angle, radius, speed: Math.random() * 0.004 + 0.002 });
@@ -141,6 +141,7 @@ const walletAddressDisplay = document.getElementById('wallet-address');
 const donateButton = document.getElementById('donate-button');
 const donateModal = document.getElementById('donate-modal');
 const closeDonate = document.getElementById('close-donate');
+const backToGameButton = document.getElementById('back-to-game');
 const donateAddress = document.getElementById('donate-address');
 const copyAddressButton = document.getElementById('copy-address');
 const tapSound = document.getElementById('tap-sound');
@@ -150,16 +151,6 @@ const clickSound = document.getElementById('click-sound');
 let provider;
 let signer;
 let account;
-
-// Monad Testnet Config
-const MONAD_TESTNET_CHAIN_ID = '0x27cf'; // Chain ID 10143 in decimal
-const NETWORK_DETAILS = {
-    chainId: MONAD_TESTNET_CHAIN_ID,
-    chainName: 'Monad Testnet',
-    rpcUrls: ['https://testnet-rpc.monad.xyz/'],
-    nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-    blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-};
 
 // Wallet Connection
 async function connectWallet() {
@@ -185,34 +176,11 @@ async function connectWallet() {
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
 
-        // Check current chain
+        // Log the current chain ID for debugging
         const chainId = await provider.getNetwork().then(net => net.chainId);
-        console.log('Current Chain ID:', chainId, 'Expected:', parseInt(MONAD_TESTNET_CHAIN_ID, 16));
-        const expectedChainId = parseInt(MONAD_TESTNET_CHAIN_ID, 16);
+        console.log('Current Chain ID:', chainId);
 
-        if (chainId !== expectedChainId) {
-            try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: MONAD_TESTNET_CHAIN_ID }],
-                });
-            } catch (switchError) {
-                if (switchError.code === 4902) {
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [NETWORK_DETAILS],
-                    });
-                } else {
-                    throw switchError;
-                }
-            }
-            // Verify chain after switch/add
-            const newChainId = await provider.getNetwork().then(net => net.chainId);
-            if (newChainId !== expectedChainId) {
-                throw new Error('Failed to switch to Monad Testnet');
-            }
-        }
-
+        // No network enforcement; user must be on the correct network for the contract
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
     } catch (error) {
@@ -220,14 +188,12 @@ async function connectWallet() {
         let message = 'Failed to connect wallet';
         if (error.code === 4001) {
             message = 'You rejected the connection request.';
-        } else if (error.code === 4902) {
-            message = 'Failed to add Monad Testnet. Please add it manually with Chain ID 10143.';
         } else {
             message += `: ${error.message}`;
         }
         alert(message);
         tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Please connect to Monad Testnet to play!';
+        tapDisabledMessage.textContent = 'Please connect to the correct network to play!';
         tapDisabledMessage.style.display = 'block';
     }
 }
@@ -246,7 +212,7 @@ async function disconnectWallet() {
     clickSound.play();
 }
 
-// Tap with Monad Transaction
+// Tap with Transaction
 const CONTRACT_ADDRESS = '0xYourContractAddressHere'; // Replace with your contract
 const ABI = [
     {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -272,7 +238,11 @@ async function handleTap() {
         updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
-        tapDisabledMessage.textContent = 'Tap failed—check gas!';
+        if (error.code === -32603 || error.message.includes('network')) {
+            tapDisabledMessage.textContent = 'Wrong network! Please switch to the correct network.';
+        } else {
+            tapDisabledMessage.textContent = 'Tap failed—check gas or network!';
+        }
         tapDisabledMessage.style.display = 'block';
     }
 }
@@ -317,6 +287,11 @@ donateButton.addEventListener('click', () => {
 });
 
 closeDonate.addEventListener('click', () => {
+    donateModal.style.display = 'none';
+    clickSound.play();
+});
+
+backToGameButton.addEventListener('click', () => {
     donateModal.style.display = 'none';
     clickSound.play();
 });
