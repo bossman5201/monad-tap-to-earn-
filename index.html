@@ -17,15 +17,17 @@
             <div id="authorized-taps">Authorized Taps Remaining: 0/10000</div>
             <div id="gas-balance">MON Balance: 0</div>
         </div>
+        <div id="tap-disabled-message" style="display: none;">Connect Wallet to Tap!</div>
+        <button id="tap-button" disabled>
+            <img src="tap-icon.png" alt="Tap to Mine Fuel" class="tap-icon">
+        </button>
         <div class="wallet-info">
             <span id="wallet-address"></span>
             <button id="connect-wallet">Connect Wallet</button>
             <button id="disconnect-wallet" style="display: none;">Disconnect</button>
+            <button id="donate-button">Donate</button>
         </div>
-        <div id="tap-disabled-message" style="display: none;">Connect Wallet to Tap!</div>
-        <div id="tap-button"></div>
         <button id="authorize-more-taps" style="display: none;">Authorize More Taps</button>
-        <button id="donate-button">Donate</button>
     </div>
 
     <!-- Wallet Modal -->
