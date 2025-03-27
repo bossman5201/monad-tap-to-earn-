@@ -1,4 +1,4 @@
-// Supercharged Milky Way Background with Lower Core Brightness
+// Canvas Background Animation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -50,7 +50,7 @@ for (let i = 0; i < 50; i++) {
     const angle = Math.random() * Math.PI * 2;
     const radius = Math.random() * maxRadius * 0.8;
     const x = centerX + Math.cos(angle) * radius;
-    the y = centerY + Math.sin(angle) * radius;
+    const y = centerY + Math.sin(angle) * radius;
     const size = Math.random() * 10 + 5;
     const baseAlpha = Math.random() * 0.1 + 0.03;
     dustSmall.push({ x, y, size, baseAlpha, angle, radius, speed: Math.random() * 0.004 + 0.002 });
@@ -59,7 +59,8 @@ for (let i = 0; i < 50; i++) {
 let time = 0;
 
 function animateMilkyWay() {
-    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, maxRadius * 1.5);
+    // Fixed: Gradient now covers the entire canvas
+    const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.hypot(canvas.width, canvas.height) / 2);
     gradient.addColorStop(0, 'rgba(180, 140, 255, 0.15)');
     gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.1)');
     gradient.addColorStop(1, 'rgba(10, 0, 26, 1)');
@@ -155,7 +156,7 @@ let account;
 // Wallet Connection
 async function connectWallet() {
     if (typeof ethers === 'undefined') {
-        alert('Ethers.js failed to load. Please check your internet connection or try refreshing the page.');
+        alert('Ethers.js failed to load. Please refresh the page.');
         return;
     }
 
@@ -167,33 +168,18 @@ async function connectWallet() {
     try {
         provider = new ethers.providers.Web3Provider(window.ethereum);
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        if (accounts.length === 0) {
-            throw new Error('No accounts returned from MetaMask');
-        }
         signer = provider.getSigner();
         account = await signer.getAddress();
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
-
-        // Log the current chain ID for debugging
-        const chainId = await provider.getNetwork().then(net => net.chainId);
-        console.log('Current Chain ID:', chainId);
-
-        // No network enforcement; user must be on the correct network for the contract
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
     } catch (error) {
         console.error('Wallet connection failed:', error);
-        let message = 'Failed to connect wallet';
-        if (error.code === 4001) {
-            message = 'You rejected the connection request.';
-        } else {
-            message += `: ${error.message}`;
-        }
-        alert(message);
+        alert('Failed to connect wallet: ' + error.message);
         tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Please connect to the correct network to play!';
+        tapDisabledMessage.textContent = 'Please connect to the correct network!';
         tapDisabledMessage.style.display = 'block';
     }
 }
@@ -213,7 +199,7 @@ async function disconnectWallet() {
 }
 
 // Tap with Transaction
-const CONTRACT_ADDRESS = '0xYourContractAddressHere'; // Replace with your contract
+const CONTRACT_ADDRESS = '0xYourContractAddressHere'; // Replace with your contract address
 const ABI = [
     {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
@@ -238,11 +224,7 @@ async function handleTap() {
         updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
-        if (error.code === -32603 || error.message.includes('network')) {
-            tapDisabledMessage.textContent = 'Wrong network! Please switch to the correct network.';
-        } else {
-            tapDisabledMessage.textContent = 'Tap failed—check gas or network!';
-        }
+        tapDisabledMessage.textContent = 'Tap failed—check network or gas!';
         tapDisabledMessage.style.display = 'block';
     }
 }
@@ -302,7 +284,7 @@ copyAddressButton.addEventListener('click', () => {
         copyAddressButton.textContent = 'Copied!';
         clickSound.play();
         setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
-    }).catch(err => console.error('Copy failed:', err));
+    });
 });
 
 // Event Listeners
