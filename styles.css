@@ -3,6 +3,17 @@ body {
     overflow: hidden;
     background: #000;
     font-family: Arial, sans-serif;
+    text-align: center;
+    color: white;
+}
+
+h1 {
+    position: absolute;
+    top: 5%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 0;
+    color: white; /* Changed to white for visibility */
 }
 
 #canvas {
@@ -12,24 +23,14 @@ body {
     z-index: -1;
 }
 
-#game-container {
+#connect-wallet,
+#disconnect-wallet {
     position: absolute;
-    top: 50%;
+    top: 15%;
     left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    color: white;
-    padding: 20px;
-    background: rgba(0, 0, 0, 0.5); /* Adjusted opacity for better blending */
-    border-radius: 10px;
-    max-width: 350px; /* Slightly larger but not too big */
-    box-shadow: 0 0 15px rgba(255, 255, 255, 0.3); /* Subtle glow */
-}
-
-button {
+    transform: translateX(-50%);
     padding: 10px 20px;
     font-size: 16px;
-    margin: 5px;
     cursor: pointer;
     background-color: #007bff;
     color: white;
@@ -37,15 +38,29 @@ button {
     border-radius: 5px;
 }
 
+#wallet-address {
+    position: absolute;
+    top: 20%;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 10px 0;
+}
+
 #tap-button {
-    font-size: 48px;
-    width: 100px;
-    height: 100px;
+    position: absolute;
+    top: 30%;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 256px; /* Doubled font size again */
+    width: 600px; /* Doubled width to 600px */
+    height: 600px; /* Doubled height to 600px */
     border-radius: 50%;
     background-color: #ff4444;
     color: white;
     margin: 10px auto;
     display: block;
+    border: none;
+    cursor: pointer;
 }
 
 #tap-button:disabled {
@@ -57,21 +72,50 @@ button {
     background-color: #cc0000;
 }
 
-button:disabled {
-    background-color: #555;
-    cursor: not-allowed;
-}
-
-button:hover:not(:disabled) {
-    background-color: #0056b3;
-}
-
-p {
+#tap-disabled-message {
+    position: absolute;
+    top: 65%;
+    left: 50%;
+    transform: translateX(-50%);
+    color: #ff4444;
     margin: 10px 0;
 }
 
-#tap-disabled-message {
-    color: #ff4444;
+p {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    margin: 10px 0;
+}
+
+p:nth-of-type(1) { /* Fuel */
+    top: 70%;
+}
+
+p:nth-of-type(2) { /* Taps */
+    top: 75%;
+}
+
+p:nth-of-type(3) { /* Invites */
+    top: 80%;
+}
+
+#donate-button {
+    position: absolute;
+    top: 85%;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#donate-button:hover {
+    background-color: #0056b3;
 }
 
 .particle {
@@ -120,6 +164,21 @@ p {
     right: 10px;
     cursor: pointer;
     font-size: 24px;
+}
+
+#back-to-game {
+    margin-top: 10px;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    background-color: #007bff;
+    color: white;
+    border: none;
+    border-radius: 5px;
+}
+
+#back-to-game:hover {
+    background-color: #0056b3;
 }
 
 .updated {
