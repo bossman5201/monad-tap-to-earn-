@@ -51,11 +51,11 @@ h1 {
     top: 30%;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 120px; /* Larger "M" to fit the circle */
+    font-size: 120px;
     width: 200px;
     height: 200px;
     border-radius: 50%;
-    background-color: #6a0dad; /* Purple to match game theme */
+    background-color: #6a0dad !important; /* Purple color enforced */
     color: white;
     margin: 10px auto;
     display: block;
@@ -64,12 +64,13 @@ h1 {
 }
 
 #tap-button:disabled {
-    background-color: #555;
+    background-color: #6a0dad !important; /* Keep purple even when disabled */
+    opacity: 0.7; /* Slight fade to indicate disabled state */
     cursor: not-allowed;
 }
 
 #tap-button:hover:not(:disabled) {
-    background-color: #4b0082; /* Darker purple on hover */
+    background-color: #4b0082 !important; /* Darker purple on hover */
 }
 
 #tap-disabled-message {
@@ -150,6 +151,18 @@ p:nth-of-type(3) { /* Invites */
     border-radius: 10px;
     text-align: center;
     color: #000;
+    width: 300px; /* Fixed width for better layout */
+}
+
+.modal-content h2 {
+    margin: 0 0 15px 0; /* Space below header */
+}
+
+.modal-content p {
+    margin: 15px 0; /* Space between paragraphs */
+    word-wrap: break-word; /* Ensures long text wraps */
+    position: static; /* Remove absolute positioning */
+    transform: none; /* Remove transform */
 }
 
 #close-donate {
@@ -160,8 +173,9 @@ p:nth-of-type(3) { /* Invites */
     font-size: 24px;
 }
 
-#back-to-game {
-    margin-top: 10px;
+#back-to-game,
+#copy-address {
+    margin: 10px 5px; /* Space between buttons */
     padding: 10px 20px;
     font-size: 16px;
     cursor: pointer;
@@ -171,7 +185,8 @@ p:nth-of-type(3) { /* Invites */
     border-radius: 5px;
 }
 
-#back-to-game:hover {
+#back-to-game:hover,
+#copy-address:hover {
     background-color: #0056b3;
 }
 
