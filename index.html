@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rocket Fuel Miner</title>
     <link rel="stylesheet" href="styles.css">
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
+    <script defer src="https://unpkg.com/ethers@5.7.2/dist/ethers.umd.min.js"></script>
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -24,7 +24,7 @@
     </div>
     <div id="donate-modal" style="display: none;">
         <div class="modal-content">
-            <span id="close-donate">&times;</span>
+            <span id="close-donate">×</span>
             <p>Support the project!</p>
             <p id="donate-address">0xYourDonateAddressHere</p>
             <button id="copy-address">Copy Address</button>
