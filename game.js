@@ -233,7 +233,7 @@ async function connectWallet() {
 }
 
 // Disconnect Wallet
-function disconnectWallet() {
+async function disconnectWallet() {
     provider = null;
     signer = null;
     account = null;
