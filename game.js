@@ -196,7 +196,7 @@ async function connectWallet() {
     } catch (error) {
         console.error('Wallet connection failed:', error);
         if (error.code === 4902) {
-            alert('Monad Testnet not found in MetaMask. Please add it manually with chain ID 10143!');
+            alert('Monad Testnet not found in MetaMask. Please ensure it’s added with chain ID 10143 and RPC https://testnet-rpc.monad.xyz/');
         } else {
             alert('Failed to connect wallet: ' + error.message);
         }
