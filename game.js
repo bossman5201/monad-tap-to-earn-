@@ -126,7 +126,7 @@ animateMilkyWay();
 
 // Game State
 let totalFuel = 0;
-let totalTaps = 0;
+let totalTaps = 100; // Initialize with 100 taps for testing
 let invitesSent = 0;
 
 // DOM Elements
@@ -152,79 +152,58 @@ let provider;
 let signer;
 let account;
 
-// Monad Testnet Configuration
-const MONAD_TESTNET = {
-    chainId: '0x27CB', // 10143 in hex
-    chainName: 'Monad Testnet',
-    rpcUrls: ['https://testnet-rpc.monad.xyz/'],
-    nativeCurrency: {
-        name: 'MON',
-        symbol: 'MON',
-        decimals: 18
-    },
-    blockExplorerUrls: ['https://testnet.monadexplorer.com']
-};
-
-// Wallet Connection with Debugging
+// Wallet Connection with Network Check
 async function connectWallet() {
-    console.log('connectWallet function called'); // Debug: Check if the function is triggered
+    console.log('connectWallet function called');
 
-    // Check if Ethers.js is loaded
     if (typeof ethers === 'undefined') {
         console.error('Ethers.js is not loaded.');
         alert('Ethers.js failed to load. Please check if ethers-5.7.2.umd.min.js is in the correct directory.');
         return;
     }
-    console.log('Ethers.js is loaded'); // Debug: Confirm Ethers.js is available
+    console.log('Ethers.js is loaded');
 
-    // Check if MetaMask is installed
     if (!window.ethereum) {
         console.error('MetaMask is not installed or not detected.');
         alert('Please install MetaMask to connect your wallet!');
         return;
     }
-    console.log('MetaMask detected:', window.ethereum); // Debug: Confirm MetaMask is detected
+    console.log('MetaMask detected:', window.ethereum);
 
     try {
-        // Request accounts to trigger MetaMask popup
-        console.log('Requesting accounts from MetaMask...'); // Debug: Before requesting accounts
+        console.log('Requesting accounts from MetaMask...');
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        console.log('Accounts received:', accounts); // Debug: After requesting accounts
+        console.log('Accounts received:', accounts);
 
         if (!accounts || accounts.length === 0) {
             throw new Error('No accounts returned from MetaMask.');
         }
 
-        // Initialize provider and signer
         provider = new ethers.providers.Web3Provider(window.ethereum);
         signer = provider.getSigner();
         account = await signer.getAddress();
-        console.log('Account connected:', account); // Debug: Confirm account is connected
+        console.log('Account connected:', account);
 
         // Check the current network
         const network = await provider.getNetwork();
         const expectedChainId = 10143; // Monad Testnet chain ID
-        console.log('Current network chain ID:', network.chainId); // Debug: Log current chain ID
+        console.log('Current network chain ID:', network.chainId);
 
         if (network.chainId !== expectedChainId) {
-            console.log('Switching to Monad Testnet (chain ID 10143)...'); // Debug: Before network switch
+            console.log('User is on the wrong network. Prompting to switch to Monad Testnet (chain ID 10143)...');
             try {
                 await window.ethereum.request({
                     method: 'wallet_switchEthereumChain',
                     params: [{ chainId: '0x27CB' }], // 10143 in hex
                 });
-                console.log('Successfully switched to Monad Testnet'); // Debug: After network switch
+                console.log('Successfully switched to Monad Testnet');
             } catch (switchError) {
-                if (switchError.code === 4902) {
-                    console.log('Adding Monad Testnet to MetaMask...'); // Debug: Before adding network
-                    await window.ethereum.request({
-                        method: 'wallet_addEthereumChain',
-                        params: [MONAD_TESTNET],
-                    });
-                    console.log('Monad Testnet added to MetaMask'); // Debug: After adding network
-                } else {
-                    throw switchError;
-                }
+                console.error('Network switch failed:', switchError);
+                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in MetaMask to continue.');
+                tapButton.disabled = true;
+                tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
+                tapDisabledMessage.style.display = 'block';
+                return;
             }
         }
 
@@ -270,11 +249,20 @@ async function handleTap() {
         tapDisabledMessage.style.display = 'block';
         return;
     }
+
+    // Check if there are taps available
+    if (totalTaps <= 0) {
+        tapDisabledMessage.textContent = 'No taps remaining!';
+        tapDisabledMessage.style.display = 'block';
+        tapButton.disabled = true;
+        return;
+    }
+
     const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
     try {
         const tx = await contract.tap();
         await tx.wait();
-        totalTaps++;
+        totalTaps--; // Decrement taps after a successful tap
         tapSound.play();
         spawnParticles();
         totalFuel = (await contract.totalFuel(account)).toString();
@@ -349,7 +337,7 @@ copyAddressButton.addEventListener('click', () => {
 // Event Listeners
 tapButton.addEventListener('click', handleTap);
 connectWalletButton.addEventListener('click', () => {
-    console.log('Connect Wallet button clicked'); // Debug: Confirm button click
+    console.log('Connect Wallet button clicked');
     connectWallet();
 });
 disconnectWalletButton.addEventListener('click', disconnectWallet);
@@ -357,7 +345,7 @@ disconnectWalletButton.addEventListener('click', disconnectWallet);
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 0;
+totalTaps = savedState.totalTaps || 100; // Default to 100 taps for testing
 invitesSent = savedState.invitesSent || 0;
 fuelDisplay.textContent = totalFuel;
 tapsDisplay.textContent = totalTaps;
