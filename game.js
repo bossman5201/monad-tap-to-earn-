@@ -1,4 +1,4 @@
-// Canvas Background Animation
+// Canvas Background Animation (unchanged, included for completeness)
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -59,7 +59,6 @@ for (let i = 0; i < 50; i++) {
 let time = 0;
 
 function animateMilkyWay() {
-    // Fixed: Gradient now covers the entire canvas
     const gradient = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, Math.hypot(canvas.width, canvas.height) / 2);
     gradient.addColorStop(0, 'rgba(180, 140, 255, 0.15)');
     gradient.addColorStop(0.3, 'rgba(120, 80, 200, 0.1)');
@@ -156,7 +155,7 @@ let account;
 // Wallet Connection
 async function connectWallet() {
     if (typeof ethers === 'undefined') {
-        alert('Ethers.js failed to load. Please refresh the page.');
+        alert('Ethers.js failed to load. Please check if ethers.min.js is in the correct directory.');
         return;
     }
 
