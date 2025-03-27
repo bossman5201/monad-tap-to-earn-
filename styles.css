@@ -1,143 +1,119 @@
 body {
     margin: 0;
+    font-family: 'Arial', sans-serif;
+    background: #0a001a;
+    color: #fff;
     overflow: hidden;
-    background: #000;
-    font-family: Arial, sans-serif;
-    text-align: center;
-    color: white;
-}
-
-h1 {
-    position: absolute;
-    top: 5%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 0;
-    color: white;
 }
 
 #canvas {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     z-index: -1;
 }
 
-#connect-wallet,
-#disconnect-wallet {
-    position: absolute;
-    top: 15%;
-    left: 50%;
-    transform: translateX(-50%);
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
-    border: none;
-    border-radius: 5px;
+.game-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    text-align: center;
 }
 
-#wallet-address {
-    position: absolute;
-    top: 20%;
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 10px 0;
+.stats {
+    margin-bottom: 20px;
+}
+
+.stats div {
+    font-size: 1.2em;
+    margin: 5px 0;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
 #tap-button {
-    position: absolute;
-    top: 30%;
-    left: 50%;
-    transform: translateX(-50%);
-    font-size: 120px;
-    width: 200px;
-    height: 200px;
-    border-radius: 50%;
-    background-color: #6a0dad !important;
-    color: white;
-    margin: 10px auto;
-    display: block;
+    padding: 15px 30px;
+    font-size: 1.5em;
+    background: linear-gradient(45deg, #4b0082, #00b7eb);
     border: none;
+    border-radius: 10px;
+    color: #fff;
     cursor: pointer;
-    transition: transform 0.1s ease; /* Smooth transition for click animation */
+    transition: transform 0.1s, box-shadow 0.3s;
+    box-shadow: 0 0 10px rgba(0, 183, 235, 0.5);
+}
+
+#tap-button:hover {
+    box-shadow: 0 0 20px rgba(0, 183, 235, 0.8);
+}
+
+#tap-button:active {
+    transform: scale(0.95);
 }
 
 #tap-button:disabled {
-    background-color: #6a0dad !important;
-    opacity: 0.7;
+    background: #555;
     cursor: not-allowed;
-}
-
-#tap-button:hover:not(:disabled) {
-    background-color: #4b0082 !important;
-}
-
-#tap-button:active:not(:disabled) {
-    transform: translateX(-50%) scale(0.95); /* Scale down on click */
+    box-shadow: none;
 }
 
 #tap-disabled-message {
-    position: absolute;
-    top: 55%; /* Lowered further to avoid overlap */
-    left: 50%;
-    transform: translateX(-50%);
     color: #ff4444;
     margin: 10px 0;
+    font-size: 1.1em;
 }
 
-p {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
-    margin: 10px 0;
-}
-
-p:nth-of-type(1) { /* Fuel */
-    top: 60%; /* Lowered further to avoid overlap */
-}
-
-p:nth-of-type(2) { /* Taps */
-    top: 65%; /* Lowered further to avoid overlap */
-}
-
-p:nth-of-type(3) { /* Invites */
-    top: 70%; /* Lowered further to avoid overlap */
-}
-
-#donate-button {
-    position: absolute;
-    top: 75%; /* Lowered further to avoid overlap */
-    left: 50%;
-    transform: translateX(-50%);
+#connect-wallet, #disconnect-wallet, #donate-button, #authorize-more-taps {
     padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
+    margin: 5px;
+    background: linear-gradient(45deg, #4b0082, #00b7eb);
     border: none;
     border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+    transition: box-shadow 0.3s;
 }
 
-#donate-button:hover {
-    background-color: #0056b3;
+#connect-wallet:hover, #disconnect-wallet:hover, #donate-button:hover, #authorize-more-taps:hover {
+    box-shadow: 0 0 15px rgba(0, 183, 235, 0.8);
+}
+
+#wallet-address {
+    margin-right: 10px;
+    font-size: 1.1em;
 }
 
 .particle {
     position: absolute;
-    background: yellow;
+    background: rgba(255, 255, 255, 0.8);
     border-radius: 50%;
     pointer-events: none;
-    animation: particle-animation 0.5s ease-out;
+    animation: particle 0.5s ease-out forwards;
 }
 
-@keyframes particle-animation {
-    0% { transform: translate(0, 0); opacity: 1; }
-    100% { transform: translate(var(--x), var(--y)); opacity: 0; }
+@keyframes particle {
+    0% {
+        opacity: 1;
+        transform: translate(0, 0);
+    }
+    100% {
+        opacity: 0;
+        transform: translate(var(--x), var(--y));
+    }
 }
 
-#donate-modal {
+.updated {
+    animation: update 0.5s ease-in-out;
+}
+
+@keyframes update {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.1); }
+    100% { transform: scale(1); }
+}
+
+.modal {
     position: fixed;
     top: 0;
     left: 0;
@@ -151,55 +127,77 @@ p:nth-of-type(3) { /* Invites */
 }
 
 .modal-content {
-    background: #fff;
+    background: #1a0a3a;
     padding: 20px;
     border-radius: 10px;
     text-align: center;
-    color: #000;
-    width: 300px;
+    box-shadow: 0 0 20px rgba(0, 183, 235, 0.5);
+    max-width: 400px;
+    width: 90%;
 }
 
 .modal-content h2 {
-    margin: 0 0 15px 0;
+    margin-top: 0;
+    color: #00b7eb;
 }
 
-.modal-content p {
-    margin: 15px 0;
-    word-wrap: break-word;
-    position: static;
-    transform: none;
+#wallet-list {
+    margin: 20px 0;
+}
+
+.wallet-option {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px;
+    margin: 10px 0;
+    background: #2a1a5a;
+    border-radius: 5px;
+    transition: transform 0.2s;
+}
+
+.wallet-option:hover {
+    transform: scale(1.05);
+}
+
+.wallet-option img {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+}
+
+.wallet-option span {
+    flex: 1;
+    margin-left: 10px;
+    text-align: left;
+}
+
+.wallet-option button {
+    padding: 5px 10px;
+    background: linear-gradient(45deg, #4b0082, #00b7eb);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
+}
+
+#cancel-wallet, #close-donate, #copy-address, #back-to-game {
+    margin: 10px;
+    padding: 10px 20px;
+    background: linear-gradient(45deg, #4b0082, #00b7eb);
+    border: none;
+    border-radius: 5px;
+    color: #fff;
+    cursor: pointer;
 }
 
 #close-donate {
     position: absolute;
     top: 10px;
     right: 10px;
-    cursor: pointer;
-    font-size: 24px;
-}
-
-#back-to-game,
-#copy-address {
-    margin: 10px 5px;
-    padding: 10px 20px;
-    font-size: 16px;
-    cursor: pointer;
-    background-color: #007bff;
-    color: white;
+    font-size: 1.5em;
+    background: none;
     border: none;
-    border-radius: 5px;
-}
-
-#back-to-game:hover,
-#copy-address:hover {
-    background-color: #0056b3;
-}
-
-.updated {
-    animation: stat-update 0.3s ease; /* Smooth animation for stats update */
-}
-
-@keyframes stat-update {
-    0% { opacity: 0; transform: translateX(-50%) scale(0.9); }
-    100% { opacity: 1; transform: translateX(-50%) scale(1); }
+    color: #fff;
+    cursor: pointer;
 }
