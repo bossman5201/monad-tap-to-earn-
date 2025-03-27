@@ -80,7 +80,7 @@ h1 {
 
 #tap-disabled-message {
     position: absolute;
-    top: 50%; /* Adjusted to be below the "M" button */
+    top: 55%; /* Lowered further to avoid overlap */
     left: 50%;
     transform: translateX(-50%);
     color: #ff4444;
@@ -95,20 +95,20 @@ p {
 }
 
 p:nth-of-type(1) { /* Fuel */
-    top: 55%; /* Lowered position */
+    top: 60%; /* Lowered further to avoid overlap */
 }
 
 p:nth-of-type(2) { /* Taps */
-    top: 60%; /* Lowered position */
+    top: 65%; /* Lowered further to avoid overlap */
 }
 
 p:nth-of-type(3) { /* Invites */
-    top: 65%; /* Lowered position */
+    top: 70%; /* Lowered further to avoid overlap */
 }
 
 #donate-button {
     position: absolute;
-    top: 70%; /* Lowered position */
+    top: 75%; /* Lowered further to avoid overlap */
     left: 50%;
     transform: translateX(-50%);
     padding: 10px 20px;
