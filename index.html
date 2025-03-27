@@ -7,25 +7,43 @@
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-    <h1>Rocket Fuel Miner</h1>
     <canvas id="canvas"></canvas>
     <div id="particle-container"></div>
-    <button id="connect-wallet">Connect Wallet</button>
-    <button id="disconnect-wallet" style="display: none;">Disconnect</button>
-    <div id="wallet-address"></div>
-    <button id="tap-button" disabled>M</button>
-    <div id="tap-disabled-message">Connect Wallet to Tap!</div>
-    <p id="fuel-display">Total Fuel: 0</p>
-    <p id="taps-display">Total Taps: 0</p>
-    <p id="invites-display">Invites Sent: 0</p>
-    <button id="donate-button">Donate</button>
+    <div class="game-container">
+        <div class="stats">
+            <div id="fuel-display">Total Fuel: 0</div>
+            <div id="taps-display">Total Taps: 0</div>
+            <div id="invites-display">Invites Sent: 0</div>
+            <div id="authorized-taps">Authorized Taps Remaining: 0/10000</div>
+            <div id="gas-balance">MON Balance: 0</div>
+        </div>
+        <div class="wallet-info">
+            <span id="wallet-address"></span>
+            <button id="connect-wallet">Connect Wallet</button>
+            <button id="disconnect-wallet" style="display: none;">Disconnect</button>
+        </div>
+        <div id="tap-disabled-message" style="display: none;">Connect Wallet to Tap!</div>
+        <button id="tap-button" disabled>Tap to Mine Fuel</button>
+        <button id="authorize-more-taps" style="display: none;">Authorize More Taps</button>
+        <button id="donate-button">Donate</button>
+    </div>
 
-    <div id="donate-modal" style="display: none;">
+    <!-- Wallet Modal -->
+    <div id="wallet-modal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <h2>Connect Your Wallet</h2>
+            <div id="wallet-list"></div>
+            <button id="cancel-wallet">Cancel</button>
+        </div>
+    </div>
+
+    <!-- Donate Modal -->
+    <div id="donate-modal" class="modal" style="display: none;">
         <div class="modal-content">
             <span id="close-donate">×</span>
-            <h2>Support the Project</h2>
-            <p>Send ETH to:</p>
-            <p id="donate-address">0x412c50d0fe3572d67b0e9627bf8315582f90b49e</p>
+            <h2>Support Rocket Fuel Miner</h2>
+            <p>Donate MON to help keep the game running!</p>
+            <p>Address: <span id="donate-address">0xYourDonateAddressHere</span></p>
             <button id="copy-address">Copy Address</button>
             <button id="back-to-game">Back to Game</button>
         </div>
@@ -33,8 +51,7 @@
 
     <audio id="tap-sound" src="tap.mp3"></audio>
     <audio id="click-sound" src="click.mp3"></audio>
-
-    <script src="ethers-5.7.2.umd.min.js"></script>
+    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
     <script src="game.js"></script>
 </body>
 </html>
