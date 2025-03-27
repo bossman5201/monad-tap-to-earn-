@@ -213,6 +213,9 @@ async function connectWallet() {
         disconnectWalletButton.style.display = 'inline-block';
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
+
+        // Fetch initial stats after connecting
+        await updateStats();
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
@@ -237,10 +240,11 @@ async function disconnectWallet() {
 }
 
 // Tap with Transaction
-const CONTRACT_ADDRESS = '0xYourContractAddressHere'; // Replace with your contract address
+const CONTRACT_ADDRESS = '0x1a55edebe68acb4509e1bf77deea5ce0dfdbbc58'; // Updated with your deployed contract address
 const ABI = [
     {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
 ];
 
 async function handleTap() {
@@ -265,9 +269,11 @@ async function handleTap() {
         totalTaps--; // Decrement taps after a successful tap
         tapSound.play();
         spawnParticles();
+        // Fetch updated stats from the contract
         totalFuel = (await contract.totalFuel(account)).toString();
-        smoothUpdate(fuelDisplay, totalFuel);
-        smoothUpdate(tapsDisplay, totalTaps);
+        totalTaps = (await contract.totalTaps(account)).toString();
+        smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+        smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
@@ -277,8 +283,19 @@ async function handleTap() {
 }
 
 // Stats Update
-function updateStats() {
-    invitesDisplay.textContent = invitesSent;
+async function updateStats() {
+    if (provider && signer && account) {
+        try {
+            const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+            totalFuel = (await contract.totalFuel(account)).toString();
+            totalTaps = (await contract.totalTaps(account)).toString();
+        } catch (error) {
+            console.error('Failed to fetch stats:', error);
+        }
+    }
+    fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
+    tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
+    invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
@@ -347,6 +364,6 @@ const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
 totalTaps = savedState.totalTaps || 100; // Default to 100 taps for testing
 invitesSent = savedState.invitesSent || 0;
-fuelDisplay.textContent = totalFuel;
-tapsDisplay.textContent = totalTaps;
-invitesDisplay.textContent = invitesSent;
+fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
+tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
+invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
