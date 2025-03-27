@@ -17,9 +17,7 @@ for (let i = 0; i < 250; i++) {
     const y = centerY + Math.sin(spiralAngle) * radius;
     const size = Math.random() * 4 + 1;
     const baseAlpha = Math.random() * 0.6 + 0.4;
-    const color = Math.random() < 0.2 ? '255, 200, 150' : Math.random() < 0.4 ? '255, 255, 200' : Math.random() < 0.7 ? '255, 255, 255'
-
- : '180, 200, 255';
+    const color = Math.random() < 0.2 ? '255, 200, 150' : Math.random() < 0.4 ? '255, 255, 200' : Math.random() < 0.7 ? '255, 255, 255' : '180, 200, 255';
     fgStars.push({ x, y, size, baseAlpha, angle, radius, speed: Math.random() * 0.005 + 0.003, color });
 }
 
@@ -128,19 +126,25 @@ animateMilkyWay();
 
 // Game State
 let totalFuel = 0;
-let totalTaps = 0; // Will be fetched from the contract
+let totalTaps = 0;
 let invitesSent = 0;
-let tapLimit = 100; // Local tap limit for testing
+let authorizedTaps = 0;
+let signature = null;
+let nonce = 0;
+let monBalance = 0;
 
 // DOM Elements
 const tapButton = document.getElementById('tap-button');
 const fuelDisplay = document.getElementById('fuel-display');
 const tapsDisplay = document.getElementById('taps-display');
 const invitesDisplay = document.getElementById('invites-display');
+const authorizedTapsDisplay = document.getElementById('authorized-taps');
+const gasBalanceDisplay = document.getElementById('gas-balance');
 const tapDisabledMessage = document.getElementById('tap-disabled-message');
 const connectWalletButton = document.getElementById('connect-wallet');
 const disconnectWalletButton = document.getElementById('disconnect-wallet');
 const walletAddressDisplay = document.getElementById('wallet-address');
+const authorizeMoreTapsButton = document.getElementById('authorize-more-taps');
 const donateButton = document.getElementById('donate-button');
 const donateModal = document.getElementById('donate-modal');
 const closeDonate = document.getElementById('close-donate');
@@ -149,60 +153,70 @@ const donateAddress = document.getElementById('donate-address');
 const copyAddressButton = document.getElementById('copy-address');
 const tapSound = document.getElementById('tap-sound');
 const clickSound = document.getElementById('click-sound');
+const walletModal = document.getElementById('wallet-modal');
+const walletList = document.getElementById('wallet-list');
+const cancelWalletButton = document.getElementById('cancel-wallet');
 
 // Ethers.js Setup
 let provider;
 let signer;
 let account;
+let contract;
 
-// Wallet Connection with Network Check
-async function connectWallet() {
-    console.log('connectWallet function called');
+// Wallet Detection (EIP-6963)
+const detectedWallets = [];
+const walletIcons = {
+    'metamask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
+    'phantom': 'https://phantom.app/img/phantom-logo.svg',
+    'rabby': 'https://rabby.io/assets/images/logo.png',
+    'okx wallet': 'https://www.okx.com/cdn/assets/imgs/221/5F4F5B5C5B5C5B5C.png',
+    'zerion': 'https://zerion.io/favicon.ico',
+    'default': 'https://via.placeholder.com/40?text=Wallet'
+};
 
-    if (typeof ethers === 'undefined') {
-        console.error('Ethers.js is not loaded.');
-        alert('Ethers.js failed to load. Please check if ethers-5.7.2.umd.min.js is in the correct directory.');
-        return;
-    }
-    console.log('Ethers.js is loaded');
+window.addEventListener('eip6963:announceProvider', (event) => {
+    const { info, provider } = event.detail;
+    detectedWallets.push({ info, provider });
+    updateWalletList();
+});
 
-    if (!window.ethereum) {
-        console.error('MetaMask is not installed or not detected.');
-        alert('Please install MetaMask to connect your wallet!');
-        return;
-    }
-    console.log('MetaMask detected:', window.ethereum);
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+
+function updateWalletList() {
+    walletList.innerHTML = '';
+    detectedWallets.forEach(wallet => {
+        const walletName = wallet.info.name.toLowerCase();
+        const iconUrl = walletIcons[walletName] || walletIcons['default'];
+        const walletDiv = document.createElement('div');
+        walletDiv.className = 'wallet-option';
+        walletDiv.innerHTML = `
+            <img src="${iconUrl}" alt="${wallet.info.name}">
+            <span>${wallet.info.name}</span>
+            <button onclick="connectWallet('${wallet.info.uuid}')">Connect</button>
+        `;
+        walletList.appendChild(walletDiv);
+    });
+}
+
+// Wallet Connection
+async function connectWallet(uuid) {
+    const wallet = detectedWallets.find(w => w.info.uuid === uuid);
+    if (!wallet) return;
+
+    provider = new ethers.providers.Web3Provider(wallet.provider);
 
     try {
-        console.log('Requesting accounts from MetaMask...');
-        const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-        console.log('Accounts received:', accounts);
-
-        if (!accounts || accounts.length === 0) {
-            throw new Error('No accounts returned from MetaMask.');
-        }
-
-        provider = new ethers.providers.Web3Provider(window.ethereum);
+        const accounts = await provider.send('eth_requestAccounts', []);
         signer = provider.getSigner();
-        account = await signer.getAddress();
-        console.log('Account connected:', account);
+        account = accounts[0];
 
-        // Check the current network
         const network = await provider.getNetwork();
         const expectedChainId = 10143; // Monad Testnet chain ID
-        console.log('Current network chain ID:', network.chainId);
-
         if (network.chainId !== expectedChainId) {
-            console.log('User is on the wrong network. Prompting to switch to Monad Testnet (chain ID 10143)...');
             try {
-                await window.ethereum.request({
-                    method: 'wallet_switchEthereumChain',
-                    params: [{ chainId: '0x27CB' }], // 10143 in hex
-                });
-                console.log('Successfully switched to Monad Testnet');
+                await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]);
             } catch (switchError) {
-                console.error('Network switch failed:', switchError);
-                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in MetaMask to continue.');
+                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
                 tapButton.disabled = true;
                 tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
                 tapDisabledMessage.style.display = 'block';
@@ -210,15 +224,18 @@ async function connectWallet() {
             }
         }
 
-        // Update UI after successful connection
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
+        walletModal.style.display = 'none';
 
-        // Fetch initial stats after connecting
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
         await updateStats();
+        nonce = Number(await contract.nonces(account));
+        await updateMonBalance();
+        await authorizeTaps();
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
@@ -228,58 +245,148 @@ async function connectWallet() {
     }
 }
 
+// Authorize Taps
+async function authorizeTaps() {
+    const tapCount = 10000; // Authorize 10,000 taps
+    const domain = {
+        name: "RocketFuelMiner",
+        version: "1",
+        chainId: 10143, // Monad Testnet
+        verifyingContract: CONTRACT_ADDRESS
+    };
+    const types = {
+        TapAuthorization: [
+            { name: "user", type: "address" },
+            { name: "tapCount", type: "uint256" },
+            { name: "nonce", type: "uint256" }
+        ]
+    };
+    const value = {
+        user: account,
+        tapCount: tapCount,
+        nonce: nonce
+    };
+
+    try {
+        signature = await signer._signTypedData(domain, types, value);
+        const tx = await contract.setAuthorizedTaps(account, tapCount);
+        await tx.wait();
+        authorizedTaps = tapCount;
+        authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
+        authorizeMoreTapsButton.style.display = 'none';
+    } catch (error) {
+        console.error('Authorization failed:', error);
+        tapButton.disabled = true;
+        tapDisabledMessage.textContent = 'Authorization failed—please try again!';
+        tapDisabledMessage.style.display = 'block';
+    }
+}
+
 // Disconnect Wallet
 async function disconnectWallet() {
     provider = null;
     signer = null;
     account = null;
+    contract = null;
+    signature = null;
+    authorizedTaps = 0;
+    nonce = 0;
+    monBalance = 0;
     walletAddressDisplay.textContent = '';
     connectWalletButton.style.display = 'inline-block';
     disconnectWalletButton.style.display = 'none';
     tapButton.disabled = true;
     tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
     tapDisabledMessage.style.display = 'block';
+    authorizedTapsDisplay.textContent = `Authorized Taps Remaining: 0/10000`;
+    gasBalanceDisplay.textContent = `MON Balance: 0`;
     clickSound.play();
 }
 
-// Tap with Transaction
-const CONTRACT_ADDRESS = '0x1a55edebe68acb4509e1bf77deea5ce0dfdbbc58'; // Your deployed contract address
+// Update MON Balance
+async function updateMonBalance() {
+    if (provider && account) {
+        const balance = await provider.getBalance(account);
+        monBalance = ethers.utils.formatEther(balance);
+        gasBalanceDisplay.textContent = `MON Balance: ${parseFloat(monBalance).toFixed(4)}`;
+    }
+}
+
+// Tap Handler
+const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d'; // Updated contract address
 const ABI = [
-    {"inputs":[],"name":"tap","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"}
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"authorizedTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
 ];
 
 async function handleTap() {
-    if (!provider || !signer) {
+    if (!provider || !signer || !contract || !signature) {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
         return;
     }
 
-    // Check if there are taps remaining within the local limit
-    const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-    const currentTaps = Number(await contract.totalTaps(account));
-    if (currentTaps >= tapLimit) {
-        tapDisabledMessage.textContent = 'No taps remaining!';
+    if (authorizedTaps <= 0) {
+        tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
+        tapDisabledMessage.style.display = 'block';
+        tapButton.disabled = true;
+        authorizeMoreTapsButton.style.display = 'inline-block';
+        return;
+    }
+
+    // Check gas balance
+    const gasEstimate = await provider.estimateGas({
+        to: CONTRACT_ADDRESS,
+        data: contract.interface.encodeFunctionData('tapWithSignature', [account, 10000, nonce, 0, '0x', '0x'])
+    });
+    const gasPrice = await provider.getGasPrice();
+    const gasCost = ethers.utils.formatEther(gasEstimate.mul(gasPrice));
+    if (parseFloat(monBalance) < parseFloat(gasCost)) {
+        tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
         tapDisabledMessage.style.display = 'block';
         tapButton.disabled = true;
         return;
     }
 
     try {
-        const tx = await contract.tap();
-        await tx.wait();
-        tapSound.play();
-        spawnParticles();
-        // Fetch updated stats from the contract
-        totalFuel = (await contract.totalFuel(account)).toString();
-        totalTaps = (await contract.totalTaps(account)).toString();
+        // Optimistically update the UI
+        totalFuel++;
+        totalTaps++;
+        authorizedTaps--;
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
-        updateStats();
+        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
+        tapSound.play();
+        spawnParticles();
+
+        // Submit the transaction
+        const sig = ethers.utils.splitSignature(signature);
+        const tx = await contract.tapWithSignature(
+            account,
+            10000,
+            nonce,
+            sig.v,
+            sig.r,
+            sig.s
+        );
+        await tx.wait();
+        nonce++;
+        await updateMonBalance();
     } catch (error) {
         console.error('Tap failed:', error);
+        totalFuel--;
+        totalTaps--;
+        authorizedTaps++;
+        smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+        smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
+        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         tapDisabledMessage.textContent = 'Tap failed—check network or gas!';
         tapDisabledMessage.style.display = 'block';
     }
@@ -287,11 +394,11 @@ async function handleTap() {
 
 // Stats Update
 async function updateStats() {
-    if (provider && signer && account) {
+    if (provider && signer && account && contract) {
         try {
-            const contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
             totalFuel = (await contract.totalFuel(account)).toString();
             totalTaps = (await contract.totalTaps(account)).toString();
+            authorizedTaps = Number(await contract.authorizedTaps(account));
         } catch (error) {
             console.error('Failed to fetch stats:', error);
         }
@@ -299,13 +406,14 @@ async function updateStats() {
     fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
     tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
     invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
+    authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
-// Particle Effects
+// Particle Effects (Tap Feedback Animation)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 10; i++) { // Increased particles for more impact
         const particle = document.createElement('div');
         particle.className = 'particle';
         const size = Math.random() * 10 + 5;
@@ -328,7 +436,19 @@ function smoothUpdate(element, newValue) {
     element.textContent = newValue;
 }
 
-// Donate Button Logic
+// Event Listeners
+connectWalletButton.addEventListener('click', () => {
+    walletModal.style.display = 'flex';
+});
+
+cancelWalletButton.addEventListener('click', () => {
+    walletModal.style.display = 'none';
+});
+
+tapButton.addEventListener('click', handleTap);
+disconnectWalletButton.addEventListener('click', disconnectWallet);
+authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
+
 donateButton.addEventListener('click', () => {
     donateModal.style.display = 'flex';
     clickSound.play();
@@ -353,18 +473,10 @@ copyAddressButton.addEventListener('click', () => {
     });
 });
 
-// Event Listeners
-tapButton.addEventListener('click', handleTap);
-connectWalletButton.addEventListener('click', () => {
-    console.log('Connect Wallet button clicked');
-    connectWallet();
-});
-disconnectWalletButton.addEventListener('click', disconnectWallet);
-
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 0; // Will be overridden by contract value
+totalTaps = savedState.totalTaps || 0;
 invitesSent = savedState.invitesSent || 0;
 fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
 tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
