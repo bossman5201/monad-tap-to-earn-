@@ -1,213 +1,72 @@
 body {
     margin: 0;
-    padding: 0;
-    font-family: Arial, sans-serif;
-    background: #0a001a;
-    color: white;
     overflow: hidden;
+    background: #000;
+    font-family: Arial, sans-serif;
 }
 
 #canvas {
-    position: fixed;
+    position: absolute;
     top: 0;
     left: 0;
     z-index: -1;
 }
 
-.content {
-    position: relative;
-    z-index: 1;
+#game-container {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
+    color: white;
     padding: 20px;
+    background: rgba(0, 0, 0, 0.7);
+    border-radius: 10px;
 }
 
-#header {
-    font-size: 2.5em;
-    margin-bottom: 20px;
-    text-shadow: 0 0 10px rgba(255, 255, 255, 0.8);
-    animation: pulse 2s infinite;
-}
-
-.tap-button-container {
-    position: relative;
-    display: inline-block;
-}
-
-#tap-button {
-    width: 100px;
-    height: 100px;
-    font-size: 2em;
-    background-color: #6a0dad;
+button {
+    padding: 10px 20px;
+    font-size: 16px;
+    margin: 5px;
+    cursor: pointer;
+    background-color: #007bff;
     color: white;
     border: none;
-    border-radius: 50%;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    box-shadow: 0 0 15px rgba(106, 13, 173, 0.7);
+    border-radius: 5px;
 }
 
-#tap-button:hover {
-    background-color: #8a2be2;
-    transform: scale(1.1);
-}
-
-#tap-button:disabled {
+button:disabled {
     background-color: #555;
     cursor: not-allowed;
-    box-shadow: none;
+}
+
+button:hover:not(:disabled) {
+    background-color: #0056b3;
+}
+
+p {
+    margin: 10px 0;
 }
 
 #tap-disabled-message {
-    display: none;
-    color: #ff4500;
-    margin-top: 10px;
-    font-size: 0.9em;
-}
-
-#particle-container {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    pointer-events: none;
+    color: #ff4444;
 }
 
 .particle {
     position: absolute;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.8), rgba(255, 255, 255, 0));
+    background: yellow;
     border-radius: 50%;
-    animation: explode 0.5s ease-out forwards;
+    pointer-events: none;
+    animation: particle-animation 0.5s ease-out;
 }
 
-.stats {
-    display: flex;
-    justify-content: center;
-    gap: 20px;
-    margin: 20px 0;
-    flex-wrap: wrap;
-}
-
-.stat-item {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 10px 20px;
-    border-radius: 5px;
-    min-width: 150px;
-}
-
-.stat-item span:first-child {
-    font-weight: bold;
-    margin-right: 5px;
-}
-
-.updated {
-    animation: statUpdate 0.3s ease;
-}
-
-.wallet-container {
-    margin: 20px 0;
-}
-
-#connect-wallet, #disconnect-wallet {
-    background-color: #6a0dad;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-#connect-wallet:hover, #disconnect-wallet:hover {
-    background-color: #8a2be2;
-    transform: scale(1.05);
-}
-
-#wallet-address {
-    margin-top: 10px;
-    font-size: 0.9em;
-}
-
-#donate-button {
-    background-color: #ff4500;
-    color: white;
-    padding: 10px 20px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin: 20px auto;
-    display: block;
-}
-
-#donate-button:hover {
-    background-color: #ff6347;
-    transform: scale(1.1);
-}
-
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(0, 0, 0, 0.8);
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    z-index: 1000;
-}
-
-.modal-content {
-    background: #1a0033;
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-    color: white;
-    box-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-}
-
-.close {
-    position: absolute;
-    top: 10px;
-    right: 20px;
-    font-size: 24px;
-    cursor: pointer;
-}
-
-#donate-address {
-    font-family: monospace;
-    word-break: break-all;
-}
-
-#copy-address {
-    background-color: #6a0dad;
-    color: white;
-    padding: 8px 16px;
-    border: none;
-    border-radius: 5px;
-    cursor: pointer;
-    transition: all 0.3s ease;
-    margin: 10px 0;
-}
-
-#copy-address:hover {
-    background-color: #8a2be2;
-    transform: scale(1.05);
-}
-
-@keyframes pulse {
-    0% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
-    50% { text-shadow: 0 0 20px rgba(255, 255, 255, 1); }
-    100% { text-shadow: 0 0 10px rgba(255, 255, 255, 0.8); }
-}
-
-@keyframes explode {
-    0% { transform: translate(0, 0); opacity: 1; }
-    100% { transform: translate(var(--x), var(--y)); opacity: 0; }
-}
-
-@keyframes statUpdate {
-    0% { color: #ff4500; }
-    100% { color: white; }
+@keyframes particle-animation {
+    0% {
+        transform: translate(0, 0);
+        opacity: 1;
+    }
+    100% {
+        transform: translate(var(--x), var(--y));
+        opacity: 0;
+    }
 }
