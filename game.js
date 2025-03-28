@@ -182,6 +182,23 @@ let modal;
 
 async function initializeAppKit() {
     try {
+        // Wait for ReownAppKit to be available
+        const waitForReownAppKit = () => new Promise((resolve, reject) => {
+            const maxAttempts = 10;
+            let attempts = 0;
+            const interval = setInterval(() => {
+                if (window.ReownAppKit) {
+                    clearInterval(interval);
+                    resolve(window.ReownAppKit);
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(interval);
+                    reject(new Error('ReownAppKit failed to load after multiple attempts.'));
+                }
+                attempts++;
+            }, 500); // Check every 500ms
+        });
+
+        await waitForReownAppKit();
         modal = await ReownAppKit.createAppKit({
             projectId: projectId,
             metadata: metadata,
@@ -193,8 +210,9 @@ async function initializeAppKit() {
         });
         console.log('Reown AppKit initialized successfully');
     } catch (error) {
-        console.error('Failed to initialize Reown AppKit:', error);
-        alert('Failed to initialize wallet connection. Please try again later.');
+        console.error('Failed to initialize Reown AppKit:', error.message);
+        console.error('Error details:', error);
+        alert('Failed to initialize wallet connection: ' + error.message);
     }
 }
 
@@ -222,7 +240,8 @@ async function connectWallet() {
             throw new Error('No provider returned from Reown AppKit');
         }
 
-        provider = new ethers.BrowserProvider(walletProvider);
+        // Use window.ethereum if available, otherwise use the wallet provider
+        provider = new ethers.BrowserProvider(walletProvider || window.ethereum);
         signer = await provider.getSigner();
         account = await signer.getAddress();
         console.log('Connected account:', account);
@@ -315,7 +334,7 @@ async function disconnectWallet() {
 async function updateMonBalance() {
     if (provider && account) {
         const balance = await provider.getBalance(account);
-        monBalance = ethers.utils.formatEther(balance);
+        monBalance = ethers.formatEther(balance);
         smoothUpdate(gasBalanceDisplay, `MON Balance: ${parseFloat(monBalance).toFixed(4)}`);
     }
 }
@@ -348,12 +367,9 @@ async function handleTap() {
     }
 
     // Check gas balance
-    const gasEstimate = await provider.estimateGas({
-        to: CONTRACT_ADDRESS,
-        data: contract.interface.encodeFunctionData('tapWithSignature', [account, 10000, nonce, 0, '0x', '0x'])
-    });
+    const gasEstimate = await contract.estimateGas.tapWithSignature(account, 10000, nonce, 0, '0x', '0x');
     const gasPrice = await provider.getGasPrice();
-    const gasCost = ethers.utils.formatEther(gasEstimate.mul(gasPrice));
+    const gasCost = ethers.formatEther(gasEstimate * gasPrice);
     if (parseFloat(monBalance) < parseFloat(gasCost)) {
         tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
         tapDisabledMessage.style.display = 'block';
@@ -373,7 +389,7 @@ async function handleTap() {
         spawnParticles();
 
         // Submit the transaction
-        const sig = ethers.utils.splitSignature(signature);
+        const sig = ethers.splitSignature(signature);
         const tx = await contract.tapWithSignature(
             account,
             10000,
@@ -421,7 +437,7 @@ async function authorizeTaps() {
     };
 
     try {
-        signature = await signer._signTypedData(domain, types, value);
+        signature = await signer.signTypedData(domain, types, value);
         const tx = await contract.setAuthorizedTaps(account, tapCount);
         await tx.wait();
         authorizedTaps = tapCount;
