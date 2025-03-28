@@ -23,7 +23,7 @@ body {
 }
 
 .stats {
-    margin-bottom: 20px;
+    margin-top: 20px; /* Adjusted to add space between tap button and stats */
 }
 
 .stats div {
@@ -35,7 +35,7 @@ body {
 #tap-button {
     width: 200px;
     height: 200px;
-    font-size: 3em; /* Larger "M" */
+    font-size: 4em; /* Increased font size for a bigger "M" */
     font-weight: bold;
     background: #4b0082; /* Purple to match the background */
     border: none;
