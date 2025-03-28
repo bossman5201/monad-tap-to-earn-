@@ -23,11 +23,12 @@ body {
 }
 
 .stats {
-    margin-top: 20px; /* Adjusted to add space between tap button and stats */
+    margin-top: 20px;
 }
 
 .stats div {
-    font-size: 1.2em;
+    font-size: 1.4em; /* Slightly larger font size */
+    font-weight: bold; /* Make text bold */
     margin: 5px 0;
     text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
@@ -35,11 +36,11 @@ body {
 #tap-button {
     width: 200px;
     height: 200px;
-    font-size: 4em; /* Increased font size for a bigger "M" */
+    font-size: 4em;
     font-weight: bold;
     background: #4b0082; /* Purple to match the background */
     border: none;
-    border-radius: 50%; /* Circular button */
+    border-radius: 50%;
     color: #fff;
     cursor: pointer;
     transition: transform 0.1s, box-shadow 0.3s;
