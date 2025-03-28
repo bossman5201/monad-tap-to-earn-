@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Rocket Fuel Miner</title>
     <link rel="stylesheet" href="styles.css">
+    <!-- Reown AppKit CSS -->
+    <link rel="stylesheet" href="https://unpkg.com/@reown/appkit@1.2.5/dist/style.css">
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -28,15 +30,6 @@
         </div>
     </div>
 
-    <!-- Wallet Modal -->
-    <div id="wallet-modal" class="modal" style="display: none;">
-        <div class="modal-content">
-            <h2>Connect Your Wallet</h2>
-            <div id="wallet-list"></div>
-            <button id="cancel-wallet">Cancel</button>
-        </div>
-    </div>
-
     <!-- Donate Modal -->
     <div id="donate-modal" class="modal" style="display: none;">
         <div class="modal-content">
@@ -49,9 +42,10 @@
         </div>
     </div>
 
-    <audio id="tap-sound" src="tap.mp3"></audio>
-    <audio id="click-sound" src="click.mp3"></audio>
-    <script src="https://cdn.ethers.io/lib/ethers-5.7.2.umd.min.js"></script>
-    <script src="game.js"></script>
+    <!-- <audio id="tap-sound" src="tap.mp3"></audio> -->
+    <!-- <audio id="click-sound" src="click.mp3"></audio> -->
+    <script src="https://unpkg.com/ethers@6.13.2/dist/ethers.umd.min.js" type="application/javascript"></script>
+    <script src="https://unpkg.com/@reown/appkit@1.2.5/dist/index.umd.js"></script>
+    <script src="game.js" defer></script>
 </body>
 </html>
