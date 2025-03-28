@@ -177,23 +177,29 @@ const walletIcons = {
 async function detectWallets() {
     detectedWallets.length = 0; // Clear previous wallets
 
-    // Check for window.ethereum (MetaMask, OKX Wallet, Phantom, etc.)
+    // Check for window.ethereum (MetaMask, OKX Wallet, etc.)
     if (window.ethereum) {
         let walletName = 'Ethereum Wallet';
-        if (window.ethereum.isMetaMask) walletName = 'MetaMask';
-        else if (window.ethereum.isOkxWallet) walletName = 'OKX Wallet';
-        else if (window.ethereum.isPhantom) walletName = 'Phantom';
-
-        detectedWallets.push({
-            info: { uuid: 'injected-ethereum', name: walletName },
-            provider: window.ethereum
-        });
+        if (window.ethereum.isMetaMask && !detectedWallets.some(w => w.info.name === 'MetaMask')) {
+            walletName = 'MetaMask';
+            detectedWallets.push({
+                info: { uuid: 'metamask', name: walletName },
+                provider: window.ethereum
+            });
+        }
+        if (window.ethereum.isOkxWallet && !detectedWallets.some(w => w.info.name === 'OKX Wallet')) {
+            walletName = 'OKX Wallet';
+            detectedWallets.push({
+                info: { uuid: 'okx-wallet', name: walletName },
+                provider: window.ethereum
+            });
+        }
     }
 
-    // Check for window.solana (Phantom-specific, in case it's not injected as ethereum)
-    if (window.solana && window.solana.isPhantom) {
+    // Check for window.solana (Phantom-specific)
+    if (window.solana && window.solana.isPhantom && !detectedWallets.some(w => w.info.name === 'Phantom')) {
         detectedWallets.push({
-            info: { uuid: 'phantom-solana', name: 'Phantom' },
+            info: { uuid: 'phantom', name: 'Phantom' },
             provider: window.solana
         });
     }
@@ -201,8 +207,10 @@ async function detectWallets() {
     // Fallback for EIP-6963
     window.addEventListener('eip6963:announceProvider', (event) => {
         const { info, provider } = event.detail;
-        detectedWallets.push({ info, provider });
-        updateWalletList();
+        if (!detectedWallets.some(w => w.info.name === info.name)) {
+            detectedWallets.push({ info, provider });
+            updateWalletList();
+        }
     });
 
     window.dispatchEvent(new Event('eip6963:requestProvider'));
@@ -240,7 +248,7 @@ async function connectWallet(uuid) {
     }
 
     // Special handling for Phantom (Solana provider)
-    if (wallet.info.uuid === 'phantom-solana') {
+    if (wallet.info.uuid === 'phantom') {
         try {
             await wallet.provider.connect();
             provider = new ethers.providers.Web3Provider(wallet.provider);
