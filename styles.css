@@ -1,12 +1,12 @@
 body {
     margin: 0;
-    font-family: 'Arial', sans-serif;
-    background: #0a001a;
-    color: #fff;
     overflow: hidden;
+    font-family: Arial, sans-serif;
+    color: white;
+    background: #0a001a;
 }
 
-#canvas {
+canvas {
     position: fixed;
     top: 0;
     left: 0;
@@ -14,50 +14,57 @@ body {
 }
 
 .game-container {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    height: 100vh;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     text-align: center;
+    z-index: 1;
 }
 
-.stats {
-    margin-top: 20px;
+.wallet-info {
+    margin-bottom: 20px;
 }
 
-.stats div {
-    font-size: 1.4em; /* Slightly larger font size */
-    font-weight: bold; /* Make text bold */
-    margin: 5px 0;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+#wallet-address {
+    display: block;
+    margin-bottom: 10px;
+    font-size: 16px;
+}
+
+#connect-wallet, #disconnect-wallet, #authorize-more-taps, #donate-button {
+    padding: 10px 20px;
+    font-size: 16px;
+    background: linear-gradient(45deg, #ff6f61, #de4d7b);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    cursor: pointer;
+    margin: 5px;
+    transition: transform 0.1s, box-shadow 0.3s;
+}
+
+#connect-wallet:hover, #disconnect-wallet:hover, #authorize-more-taps:hover, #donate-button:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 111, 97, 0.5);
 }
 
 #tap-button {
-    width: 200px;
-    height: 200px;
-    font-size: 4em;
-    font-weight: bold;
-    background: #4b0082; /* Purple to match the background */
+    width: 100px;
+    height: 100px;
+    font-size: 36px;
+    background: linear-gradient(45deg, #4facfe, #00f2fe);
     border: none;
     border-radius: 50%;
-    color: #fff;
+    color: white;
     cursor: pointer;
+    box-shadow: 0 0 20px rgba(79, 172, 254, 0.5);
     transition: transform 0.1s, box-shadow 0.3s;
-    box-shadow: 0 0 10px rgba(0, 183, 235, 0.5);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 0;
 }
 
 #tap-button:hover {
-    box-shadow: 0 0 20px rgba(0, 183, 235, 0.8);
-}
-
-#tap-button:active {
-    transform: scale(0.95);
+    transform: scale(1.1);
+    box-shadow: 0 0 30px rgba(79, 172, 254, 0.7);
 }
 
 #tap-button:disabled {
@@ -67,29 +74,28 @@ body {
 }
 
 #tap-disabled-message {
-    color: #ff4444;
-    margin: 10px 0;
-    font-size: 1.1em;
+    margin-top: 10px;
+    color: #ff6f61;
+    font-size: 14px;
 }
 
-#connect-wallet, #disconnect-wallet, #donate-button, #authorize-more-taps {
-    padding: 10px 20px;
-    margin: 5px;
-    background: linear-gradient(45deg, #4b0082, #00b7eb);
-    border: none;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-    transition: box-shadow 0.3s;
+.stats {
+    margin-top: 20px;
+    font-size: 16px;
 }
 
-#connect-wallet:hover, #disconnect-wallet:hover, #donate-button:hover, #authorize-more-taps:hover {
-    box-shadow: 0 0 15px rgba(0, 183, 235, 0.8);
+.stats div {
+    margin: 5px 0;
 }
 
-#wallet-address {
-    margin-right: 10px;
-    font-size: 1.1em;
+.updated {
+    animation: update 0.5s ease-in-out;
+}
+
+@keyframes update {
+    0% { transform: scale(1); color: white; }
+    50% { transform: scale(1.1); color: #ff6f61; }
+    100% { transform: scale(1); color: white; }
 }
 
 .particle {
@@ -101,111 +107,57 @@ body {
 }
 
 @keyframes particle {
-    0% {
-        opacity: 1;
-        transform: translate(0, 0);
-    }
-    100% {
-        opacity: 0;
-        transform: translate(var(--x), var(--y));
-    }
-}
-
-.updated {
-    animation: update 0.5s ease-in-out;
-}
-
-@keyframes update {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% { opacity: 1; transform: translate(0, 0); }
+    100% { opacity: 0; transform: translate(var(--x), var(--y)); }
 }
 
 .modal {
+    display: none;
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
     background: rgba(0, 0, 0, 0.8);
-    display: flex;
+    z-index: 2;
     justify-content: center;
     align-items: center;
-    z-index: 1000;
 }
 
 .modal-content {
-    background: #1a0a3a;
+    background: #1a0d3d;
     padding: 20px;
     border-radius: 10px;
     text-align: center;
-    box-shadow: 0 0 20px rgba(0, 183, 235, 0.5);
-    max-width: 400px;
-    width: 90%;
-}
-
-.modal-content h2 {
-    margin-top: 0;
-    color: #00b7eb;
-}
-
-#wallet-list {
-    margin: 20px 0;
-}
-
-.wallet-option {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px;
-    margin: 10px 0;
-    background: #2a1a5a;
-    border-radius: 5px;
-    transition: transform 0.2s;
-}
-
-.wallet-option:hover {
-    transform: scale(1.05);
-}
-
-.wallet-option img {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-}
-
-.wallet-option span {
-    flex: 1;
-    margin-left: 10px;
-    text-align: left;
-}
-
-.wallet-option button {
-    padding: 5px 10px;
-    background: linear-gradient(45deg, #4b0082, #00b7eb);
-    border: none;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
-}
-
-#cancel-wallet, #close-donate, #copy-address, #back-to-game {
-    margin: 10px;
-    padding: 10px 20px;
-    background: linear-gradient(45deg, #4b0082, #00b7eb);
-    border: none;
-    border-radius: 5px;
-    color: #fff;
-    cursor: pointer;
+    position: relative;
+    max-width: 90%;
 }
 
 #close-donate {
     position: absolute;
     top: 10px;
-    right: 10px;
-    font-size: 1.5em;
-    background: none;
-    border: none;
-    color: #fff;
+    right: 15px;
+    font-size: 24px;
     cursor: pointer;
+}
+
+#donate-address {
+    font-family: monospace;
+    word-break: break-all;
+}
+
+#copy-address, #back-to-game {
+    padding: 10px 20px;
+    margin: 10px;
+    background: linear-gradient(45deg, #ff6f61, #de4d7b);
+    border: none;
+    border-radius: 25px;
+    color: white;
+    cursor: pointer;
+    transition: transform 0.1s, box-shadow 0.3s;
+}
+
+#copy-address:hover, #back-to-game:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 15px rgba(255, 111, 97, 0.5);
 }
