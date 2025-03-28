@@ -181,6 +181,7 @@ const monadTestnet = {
 let modal;
 
 async function initializeAppKit() {
+    console.log('Starting Reown AppKit initialization...');
     try {
         // Check if ReownAppKit is already available
         if (!window.ReownAppKit) {
@@ -189,12 +190,12 @@ async function initializeAppKit() {
             let scriptLoaded = false;
             let attempts = 0;
             const maxAttempts = 3;
-            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.2.5/dist/index.umd.js';
-            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.2.5/dist/index.umd.js';
+            const primaryUrl = 'https://unpkg.com/@reown/appkit@latest/dist/index.umd.js';
+            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@latest/dist/index.umd.js';
 
             while (!scriptLoaded && attempts < maxAttempts) {
                 attempts++;
-                console.log(`Attempt ${attempts} to load ReownAppKit...`);
+                console.log(`Attempt ${attempts} to load ReownAppKit from ${attempts === maxAttempts ? fallbackUrl : primaryUrl}...`);
                 script.src = attempts === maxAttempts ? fallbackUrl : primaryUrl;
                 script.async = true;
                 document.head.appendChild(script);
@@ -203,6 +204,7 @@ async function initializeAppKit() {
                     await new Promise((resolve, reject) => {
                         script.onload = () => {
                             scriptLoaded = true;
+                            console.log(`Successfully loaded ReownAppKit script from ${script.src}`);
                             resolve();
                         };
                         script.onerror = () => reject(new Error(`Failed to load ReownAppKit script from ${script.src}`));
@@ -218,6 +220,8 @@ async function initializeAppKit() {
                     script.remove();
                 }
             }
+        } else {
+            console.log('ReownAppKit already loaded in window.');
         }
 
         // Wait for ReownAppKit to be available
@@ -227,16 +231,19 @@ async function initializeAppKit() {
             const interval = setInterval(() => {
                 if (window.ReownAppKit) {
                     clearInterval(interval);
+                    console.log('ReownAppKit is now available in window.');
                     resolve(window.ReownAppKit);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(interval);
                     reject(new Error('ReownAppKit failed to load after multiple attempts. Please check your network connection or try again later.'));
                 }
                 attempts++;
+                console.log(`Waiting for ReownAppKit... Attempt ${attempts}/${maxAttempts}`);
             }, 500); // Check every 500ms
         });
 
         await waitForReownAppKit();
+        console.log('Creating Reown AppKit modal...');
         modal = await ReownAppKit.createAppKit({
             projectId: projectId,
             metadata: metadata,
@@ -246,7 +253,7 @@ async function initializeAppKit() {
                 analytics: false
             }
         });
-        console.log('Reown AppKit initialized successfully');
+        console.log('Reown AppKit initialized successfully. Modal created:', modal);
     } catch (error) {
         console.error('Failed to initialize Reown AppKit:', error.message);
         console.error('Error details:', error);
@@ -256,19 +263,25 @@ async function initializeAppKit() {
 
 // Wallet Connection with Reown AppKit
 async function connectWallet() {
+    console.log('Connect Wallet button clicked.');
     if (!modal) {
-        console.error('Reown AppKit modal not initialized');
+        console.error('Reown AppKit modal not initialized. Modal is:', modal);
+        alert('Wallet connection failed: Reown AppKit modal not initialized. Check the console for details.');
         return;
     }
 
     try {
         console.log('Opening Reown AppKit modal...');
         await modal.open();
+        console.log('Reown AppKit modal opened successfully.');
         
         // Wait for the user to connect
         const walletProvider = await new Promise((resolve) => {
+            console.log('Subscribing to provider state...');
             modal.subscribeProvider((state) => {
+                console.log('Provider state updated:', state);
                 if (state['eip155']) {
+                    console.log('EIP-155 provider found:', state['eip155']);
                     resolve(state['eip155']);
                 }
             });
@@ -278,6 +291,7 @@ async function connectWallet() {
             throw new Error('No provider returned from Reown AppKit');
         }
 
+        console.log('Wallet provider received:', walletProvider);
         // Use window.ethereum if available, otherwise use the wallet provider
         provider = new ethers.BrowserProvider(walletProvider || window.ethereum);
         signer = await provider.getSigner();
