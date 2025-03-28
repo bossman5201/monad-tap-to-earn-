@@ -22,22 +22,33 @@ body {
     text-align: center;
 }
 
-.tap-area {
+.stats {
     margin-bottom: 20px;
 }
 
+.stats div {
+    font-size: 1.2em;
+    margin: 5px 0;
+    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
+}
+
 #tap-button {
-    width: 150px;
-    height: 150px;
-    background: linear-gradient(45deg, #4b0082, #00b7eb);
+    width: 200px;
+    height: 200px;
+    font-size: 3em; /* Larger "M" */
+    font-weight: bold;
+    background: #4b0082; /* Purple to match the background */
     border: none;
-    border-radius: 50%;
+    border-radius: 50%; /* Circular button */
+    color: #fff;
     cursor: pointer;
     transition: transform 0.1s, box-shadow 0.3s;
     box-shadow: 0 0 10px rgba(0, 183, 235, 0.5);
     display: flex;
     align-items: center;
     justify-content: center;
+    text-align: center;
+    padding: 0;
 }
 
 #tap-button:hover {
@@ -52,21 +63,6 @@ body {
     background: #555;
     cursor: not-allowed;
     box-shadow: none;
-}
-
-.rocket-icon {
-    width: 80px;
-    height: 80px;
-}
-
-.stats {
-    margin-bottom: 20px;
-}
-
-.stats div {
-    font-size: 1.2em;
-    margin: 5px 0;
-    text-shadow: 0 0 5px rgba(255, 255, 255, 0.5);
 }
 
 #tap-disabled-message {
