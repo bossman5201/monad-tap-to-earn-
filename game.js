@@ -153,9 +153,6 @@ const donateAddress = document.getElementById('donate-address');
 const copyAddressButton = document.getElementById('copy-address');
 const tapSound = document.getElementById('tap-sound');
 const clickSound = document.getElementById('click-sound');
-const walletModal = document.getElementById('wallet-modal');
-const walletList = document.getElementById('wallet-list');
-const cancelWalletButton = document.getElementById('cancel-wallet');
 
 // Ethers.js Setup
 let provider;
@@ -163,112 +160,110 @@ let signer;
 let account;
 let contract;
 
-// Wallet Detection and Connection
-const detectedWallets = [];
-const walletIcons = {
-    'metamask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
-    'phantom': 'https://phantom.app/img/phantom-logo.svg',
-    'rabby': 'https://rabby.io/assets/images/logo.png',
-    'okx wallet': 'https://www.okx.com/cdn/assets/imgs/221/5F4F5B5C5B5C5B5C.png',
-    'zerion': 'https://zerion.io/favicon.ico',
-    'default': 'https://via.placeholder.com/40?text=Wallet'
+// Reown AppKit Setup
+const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided Project ID
+const metadata = {
+    name: 'Rocket Fuel Miner',
+    description: 'A fun game to mine rocket fuel on the Monad Testnet',
+    url: window.location.origin, // Dynamically set to the current domain
+    icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
-async function detectWallets() {
-    detectedWallets.length = 0; // Clear previous wallets
+// Define the Monad Testnet network
+const monadTestnet = {
+    chainId: 10143, // Monad Testnet chain ID
+    name: 'Monad Testnet',
+    currency: 'MON',
+    explorerUrl: 'https://testnet.monadexplorer.com/', // Provided Block Explorer URL
+    rpcUrl: 'https://testnet-rpc.monad.xyz/' // Provided RPC URL
+};
 
-    // Check for window.ethereum (MetaMask, OKX Wallet, etc.)
-    if (window.ethereum) {
-        if (window.ethereum.isMetaMask && !detectedWallets.some(w => w.info.name === 'MetaMask')) {
-            detectedWallets.push({
-                info: { uuid: 'metamask', name: 'MetaMask' },
-                provider: window.ethereum
-            });
-        }
-        if (window.ethereum.isOkxWallet && !detectedWallets.some(w => w.info.name === 'OKX Wallet')) {
-            detectedWallets.push({
-                info: { uuid: 'okx-wallet', name: 'OKX Wallet' },
-                provider: window.ethereum
-            });
-        }
-    }
+let modal;
 
-    // Skip Phantom for now since it’s causing issues with ethers.js
-    // We’ll reintroduce Phantom support once the ethers.js issue is resolved
-    /*
-    if (window.solana && window.solana.isPhantom && !detectedWallets.some(w => w.info.name === 'Phantom')) {
-        detectedWallets.push({
-            info: { uuid: 'phantom', name: 'Phantom' },
-            provider: window.solana
+async function initializeAppKit() {
+    try {
+        modal = await ReownAppKit.createAppKit({
+            projectId: projectId,
+            metadata: metadata,
+            networks: [monadTestnet],
+            adapters: [new ReownAppKit.EthersAdapter()],
+            features: {
+                analytics: false
+            }
         });
+        console.log('Reown AppKit initialized successfully');
+    } catch (error) {
+        console.error('Failed to initialize Reown AppKit:', error);
+        alert('Failed to initialize wallet connection. Please try again later.');
     }
-    */
-
-    // Fallback for EIP-6963
-    window.addEventListener('eip6963:announceProvider', (event) => {
-        const { info, provider } = event.detail;
-        if (!detectedWallets.some(w => w.info.name === info.name)) {
-            detectedWallets.push({ info, provider });
-            updateWalletList();
-        }
-    });
-
-    window.dispatchEvent(new Event('eip6963:requestProvider'));
-
-    // Update the wallet list after a short delay to ensure all providers are detected
-    setTimeout(updateWalletList, 500);
 }
 
-function updateWalletList() {
-    walletList.innerHTML = '';
-    if (detectedWallets.length === 0) {
-        walletList.innerHTML = '<p>No wallets detected. Please install a wallet like MetaMask or OKX Wallet.</p>';
+// Wallet Connection with Reown AppKit
+async function connectWallet() {
+    if (!modal) {
+        console.error('Reown AppKit modal not initialized');
         return;
     }
-
-    detectedWallets.forEach(wallet => {
-        const walletName = wallet.info.name.toLowerCase();
-        const iconUrl = walletIcons[walletName] || walletIcons['default'];
-        const walletDiv = document.createElement('div');
-        walletDiv.className = 'wallet-option';
-        walletDiv.innerHTML = `
-            <img src="${iconUrl}" alt="${wallet.info.name}">
-            <span>${wallet.info.name}</span>
-            <button onclick="connectWallet('${wallet.info.uuid}')">Connect</button>
-        `;
-        walletList.appendChild(walletDiv);
-    });
-}
-
-async function connectWallet(uuid) {
-    const wallet = detectedWallets.find(w => w.info.uuid === uuid);
-    if (!wallet || !wallet.provider) {
-        alert('Wallet provider not found. Please ensure your wallet extension is installed and active.');
-        return;
-    }
-
-    provider = new ethers.providers.Web3Provider(wallet.provider);
 
     try {
-        // Request accounts to trigger wallet popup
-        const accounts = await provider.send('eth_requestAccounts', []);
-        if (!accounts || accounts.length === 0) {
-            throw new Error('No accounts returned from wallet.');
+        console.log('Opening Reown AppKit modal...');
+        await modal.open();
+        
+        // Wait for the user to connect
+        const walletProvider = await new Promise((resolve) => {
+            modal.subscribeProvider((state) => {
+                if (state['eip155']) {
+                    resolve(state['eip155']);
+                }
+            });
+        });
+
+        if (!walletProvider) {
+            throw new Error('No provider returned from Reown AppKit');
         }
-        signer = provider.getSigner();
-        account = accounts[0];
+
+        provider = new ethers.BrowserProvider(walletProvider);
+        signer = await provider.getSigner();
+        account = await signer.getAddress();
+        console.log('Connected account:', account);
 
         const network = await provider.getNetwork();
         const expectedChainId = 10143; // Monad Testnet chain ID
-        if (network.chainId !== expectedChainId) {
+        console.log('Current network chainId:', network.chainId);
+        if (Number(network.chainId) !== expectedChainId) {
             try {
-                await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]);
+                console.log('Switching to Monad Testnet (Chain ID: 10143)...');
+                await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]); // 10143 in hex
             } catch (switchError) {
-                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
-                tapButton.disabled = true;
-                tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
-                tapDisabledMessage.style.display = 'block';
-                return;
+                if (switchError.code === 4902) { // Chain not added
+                    try {
+                        await provider.send('wallet_addEthereumChain', [{
+                            chainId: '0x27CB',
+                            chainName: 'Monad Testnet',
+                            nativeCurrency: {
+                                name: 'MON',
+                                symbol: 'MON',
+                                decimals: 18
+                            },
+                            rpcUrls: ['https://testnet-rpc.monad.xyz/'],
+                            blockExplorerUrls: ['https://testnet.monadexplorer.com/']
+                        }]);
+                    } catch (addError) {
+                        console.error('Failed to add Monad Testnet:', addError);
+                        alert('Please manually add the Monad Testnet (Chain ID: 10143) in your wallet.');
+                        tapButton.disabled = true;
+                        tapDisabledMessage.textContent = 'Please add the Monad Testnet (Chain ID: 10143)!';
+                        tapDisabledMessage.style.display = 'block';
+                        return;
+                    }
+                } else {
+                    console.error('Network switch failed:', switchError);
+                    alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
+                    tapButton.disabled = true;
+                    tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
+                    tapDisabledMessage.style.display = 'block';
+                    return;
+                }
             }
         }
 
@@ -277,7 +272,6 @@ async function connectWallet(uuid) {
         disconnectWalletButton.style.display = 'inline-block';
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
-        walletModal.style.display = 'none';
 
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
         await updateStats();
@@ -293,47 +287,11 @@ async function connectWallet(uuid) {
     }
 }
 
-// Authorize Taps
-async function authorizeTaps() {
-    const tapCount = 10000; // Authorize 10,000 taps
-    const domain = {
-        name: "RocketFuelMiner",
-        version: "1",
-        chainId: 10143, // Monad Testnet
-        verifyingContract: CONTRACT_ADDRESS
-    };
-    const types = {
-        TapAuthorization: [
-            { name: "user", type: "address" },
-            { name: "tapCount", type: "uint256" },
-            { name: "nonce", type: "uint256" }
-        ]
-    };
-    const value = {
-        user: account,
-        tapCount: tapCount,
-        nonce: nonce
-    };
-
-    try {
-        signature = await signer._signTypedData(domain, types, value);
-        const tx = await contract.setAuthorizedTaps(account, tapCount);
-        await tx.wait();
-        authorizedTaps = tapCount;
-        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapButton.disabled = false;
-        tapDisabledMessage.style.display = 'none';
-        authorizeMoreTapsButton.style.display = 'none';
-    } catch (error) {
-        console.error('Authorization failed:', error);
-        tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Authorization failed—please try again!';
-        tapDisabledMessage.style.display = 'block';
-    }
-}
-
 // Disconnect Wallet
 async function disconnectWallet() {
+    if (modal) {
+        await modal.disconnect();
+    }
     provider = null;
     signer = null;
     account = null;
@@ -350,7 +308,7 @@ async function disconnectWallet() {
     tapDisabledMessage.style.display = 'block';
     smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: 0/10000`);
     smoothUpdate(gasBalanceDisplay, `MON Balance: 0`);
-    clickSound.play();
+    // clickSound.play();
 }
 
 // Update MON Balance
@@ -411,7 +369,7 @@ async function handleTap() {
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapSound.play();
+        // tapSound.play();
         spawnParticles();
 
         // Submit the transaction
@@ -440,6 +398,45 @@ async function handleTap() {
     }
 }
 
+// Authorize Taps
+async function authorizeTaps() {
+    const tapCount = 10000; // Authorize 10,000 taps
+    const domain = {
+        name: "RocketFuelMiner",
+        version: "1",
+        chainId: 10143, // Monad Testnet
+        verifyingContract: CONTRACT_ADDRESS
+    };
+    const types = {
+        TapAuthorization: [
+            { name: "user", type: "address" },
+            { name: "tapCount", type: "uint256" },
+            { name: "nonce", type: "uint256" }
+        ]
+    };
+    const value = {
+        user: account,
+        tapCount: tapCount,
+        nonce: nonce
+    };
+
+    try {
+        signature = await signer._signTypedData(domain, types, value);
+        const tx = await contract.setAuthorizedTaps(account, tapCount);
+        await tx.wait();
+        authorizedTaps = tapCount;
+        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
+        authorizeMoreTapsButton.style.display = 'none';
+    } catch (error) {
+        console.error('Authorization failed:', error);
+        tapButton.disabled = true;
+        tapDisabledMessage.textContent = 'Authorization failed—please try again!';
+        tapDisabledMessage.style.display = 'block';
+    }
+}
+
 // Stats Update
 async function updateStats() {
     if (provider && signer && account && contract) {
@@ -461,7 +458,7 @@ async function updateStats() {
 // Particle Effects (Tap Feedback Animation)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
-    for (let i = 0; i < 10; i++) { // Increased particles for more impact
+    for (let i = 0; i < 10; i++) {
         const particle = document.createElement('div');
         particle.className = 'particle';
         const size = Math.random() * 10 + 5;
@@ -485,42 +482,35 @@ function smoothUpdate(element, newValue) {
 }
 
 // Event Listeners
-connectWalletButton.addEventListener('click', () => {
-    walletModal.style.display = 'flex';
-    detectWallets(); // Ensure wallets are detected when the modal opens
-});
-
-cancelWalletButton.addEventListener('click', () => {
-    walletModal.style.display = 'none';
-});
-
-tapButton.addEventListener('click', handleTap);
+connectWalletButton.addEventListener('click', connectWallet);
 disconnectWalletButton.addEventListener('click', disconnectWallet);
 authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
 
 donateButton.addEventListener('click', () => {
     donateModal.style.display = 'flex';
-    clickSound.play();
+    // clickSound.play();
 });
 
 closeDonate.addEventListener('click', () => {
     donateModal.style.display = 'none';
-    clickSound.play();
+    // clickSound.play();
 });
 
 backToGameButton.addEventListener('click', () => {
     donateModal.style.display = 'none';
-    clickSound.play();
+    // clickSound.play();
 });
 
 copyAddressButton.addEventListener('click', () => {
     const address = donateAddress.textContent;
     navigator.clipboard.writeText(address).then(() => {
         copyAddressButton.textContent = 'Copied!';
-        clickSound.play();
+        // clickSound.play();
         setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
     });
 });
+
+tapButton.addEventListener('click', handleTap);
 
 // Load Game State
 const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
@@ -531,5 +521,5 @@ smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
 smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
 smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
 
-// Initial wallet detection
-detectWallets();
+// Initialize Reown AppKit
+initializeAppKit();
