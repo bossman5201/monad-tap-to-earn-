@@ -163,7 +163,7 @@ let signer;
 let account;
 let contract;
 
-// Wallet Detection (EIP-6963)
+// Wallet Detection and Connection
 const detectedWallets = [];
 const walletIcons = {
     'metamask': 'https://upload.wikimedia.org/wikipedia/commons/3/36/MetaMask_Fox.svg',
@@ -174,9 +174,31 @@ const walletIcons = {
     'default': 'https://via.placeholder.com/40?text=Wallet'
 };
 
-// Fallback to window.ethereum if EIP-6963 fails
 async function detectWallets() {
-    // EIP-6963 Detection
+    detectedWallets.length = 0; // Clear previous wallets
+
+    // Check for window.ethereum (MetaMask, OKX Wallet, Phantom, etc.)
+    if (window.ethereum) {
+        let walletName = 'Ethereum Wallet';
+        if (window.ethereum.isMetaMask) walletName = 'MetaMask';
+        else if (window.ethereum.isOkxWallet) walletName = 'OKX Wallet';
+        else if (window.ethereum.isPhantom) walletName = 'Phantom';
+
+        detectedWallets.push({
+            info: { uuid: 'injected-ethereum', name: walletName },
+            provider: window.ethereum
+        });
+    }
+
+    // Check for window.solana (Phantom-specific, in case it's not injected as ethereum)
+    if (window.solana && window.solana.isPhantom) {
+        detectedWallets.push({
+            info: { uuid: 'phantom-solana', name: 'Phantom' },
+            provider: window.solana
+        });
+    }
+
+    // Fallback for EIP-6963
     window.addEventListener('eip6963:announceProvider', (event) => {
         const { info, provider } = event.detail;
         detectedWallets.push({ info, provider });
@@ -185,38 +207,17 @@ async function detectWallets() {
 
     window.dispatchEvent(new Event('eip6963:requestProvider'));
 
-    // Fallback to window.ethereum
-    if (window.ethereum && detectedWallets.length === 0) {
-        const provider = window.ethereum;
-        let walletName = 'MetaMask'; // Default assumption
-        if (provider.isMetaMask) {
-            walletName = 'MetaMask';
-        } else if (provider.isOkxWallet) {
-            walletName = 'OKX Wallet';
-        } else if (provider.isPhantom) {
-            walletName = 'Phantom';
-        } else if (provider.isRabby) {
-            walletName = 'Rabby';
-        } else if (provider.isZerion) {
-            walletName = 'Zerion';
-        }
-        detectedWallets.push({
-            info: { name: walletName, uuid: 'window.ethereum' },
-            provider: provider
-        });
-        updateWalletList();
-    }
-
-    // If no wallets detected after a timeout, prompt user
-    setTimeout(() => {
-        if (detectedWallets.length === 0) {
-            alert('No wallet detected. Please ensure a wallet like MetaMask, OKX Wallet, or Phantom is installed.');
-        }
-    }, 2000);
+    // Update the wallet list after a short delay to ensure all providers are detected
+    setTimeout(updateWalletList, 500);
 }
 
 function updateWalletList() {
     walletList.innerHTML = '';
+    if (detectedWallets.length === 0) {
+        walletList.innerHTML = '<p>No wallets detected. Please install a wallet like MetaMask, OKX Wallet, or Phantom.</p>';
+        return;
+    }
+
     detectedWallets.forEach(wallet => {
         const walletName = wallet.info.name.toLowerCase();
         const iconUrl = walletIcons[walletName] || walletIcons['default'];
@@ -231,16 +232,33 @@ function updateWalletList() {
     });
 }
 
-// Wallet Connection
 async function connectWallet(uuid) {
     const wallet = detectedWallets.find(w => w.info.uuid === uuid);
-    if (!wallet) return;
+    if (!wallet || !wallet.provider) {
+        alert('Wallet provider not found. Please ensure your wallet extension is installed and active.');
+        return;
+    }
 
-    provider = new ethers.providers.Web3Provider(wallet.provider);
+    // Special handling for Phantom (Solana provider)
+    if (wallet.info.uuid === 'phantom-solana') {
+        try {
+            await wallet.provider.connect();
+            provider = new ethers.providers.Web3Provider(wallet.provider);
+        } catch (error) {
+            console.error('Phantom connection failed:', error);
+            alert('Failed to connect Phantom wallet: ' + (error.message || 'Unknown error'));
+            return;
+        }
+    } else {
+        provider = new ethers.providers.Web3Provider(wallet.provider);
+    }
 
     try {
         // Request accounts to trigger wallet popup
         const accounts = await provider.send('eth_requestAccounts', []);
+        if (!accounts || accounts.length === 0) {
+            throw new Error('No accounts returned from wallet.');
+        }
         signer = provider.getSigner();
         account = accounts[0];
 
@@ -251,7 +269,7 @@ async function connectWallet(uuid) {
                 await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]);
             } catch (switchError) {
                 alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
-                tapButton.classList.add('disabled');
+                tapButton.disabled = true;
                 tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
                 tapDisabledMessage.style.display = 'block';
                 return;
@@ -261,7 +279,7 @@ async function connectWallet(uuid) {
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
-        tapButton.classList.remove('disabled');
+        tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         walletModal.style.display = 'none';
 
@@ -273,7 +291,7 @@ async function connectWallet(uuid) {
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
-        tapButton.classList.add('disabled');
+        tapButton.disabled = true;
         tapDisabledMessage.textContent = 'Please connect to the Monad Testnet (Chain ID: 10143)!';
         tapDisabledMessage.style.display = 'block';
     }
@@ -307,12 +325,12 @@ async function authorizeTaps() {
         await tx.wait();
         authorizedTaps = tapCount;
         authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
-        tapButton.classList.remove('disabled');
+        tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         authorizeMoreTapsButton.style.display = 'none';
     } catch (error) {
         console.error('Authorization failed:', error);
-        tapButton.classList.add('disabled');
+        tapButton.disabled = true;
         tapDisabledMessage.textContent = 'Authorization failed—please try again!';
         tapDisabledMessage.style.display = 'block';
     }
@@ -331,7 +349,7 @@ async function disconnectWallet() {
     walletAddressDisplay.textContent = '';
     connectWalletButton.style.display = 'inline-block';
     disconnectWalletButton.style.display = 'none';
-    tapButton.classList.add('disabled');
+    tapButton.disabled = true;
     tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
     tapDisabledMessage.style.display = 'block';
     authorizedTapsDisplay.textContent = `Authorized Taps Remaining: 0/10000`;
@@ -349,7 +367,7 @@ async function updateMonBalance() {
 }
 
 // Tap Handler
-const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
+const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d'; // Updated contract address
 const ABI = [
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -362,7 +380,7 @@ const ABI = [
 
 async function handleTap() {
     if (!provider || !signer || !contract || !signature) {
-        tapButton.classList.add('disabled');
+        tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
         return;
     }
@@ -370,7 +388,7 @@ async function handleTap() {
     if (authorizedTaps <= 0) {
         tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
         tapDisabledMessage.style.display = 'block';
-        tapButton.classList.add('disabled');
+        tapButton.disabled = true;
         authorizeMoreTapsButton.style.display = 'inline-block';
         return;
     }
@@ -385,7 +403,7 @@ async function handleTap() {
     if (parseFloat(monBalance) < parseFloat(gasCost)) {
         tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
         tapDisabledMessage.style.display = 'block';
-        tapButton.classList.add('disabled');
+        tapButton.disabled = true;
         return;
     }
 
@@ -447,7 +465,7 @@ async function updateStats() {
 // Particle Effects (Tap Feedback Animation)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
-    for (let i = 0; i < 10; i++) {
+    for (let i = 0; i < 10; i++) { // Increased particles for more impact
         const particle = document.createElement('div');
         particle.className = 'particle';
         const size = Math.random() * 10 + 5;
@@ -472,8 +490,8 @@ function smoothUpdate(element, newValue) {
 
 // Event Listeners
 connectWalletButton.addEventListener('click', () => {
-    detectWallets();
     walletModal.style.display = 'flex';
+    detectWallets(); // Ensure wallets are detected when the modal opens
 });
 
 cancelWalletButton.addEventListener('click', () => {
@@ -516,3 +534,6 @@ invitesSent = savedState.invitesSent || 0;
 fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
 tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
 invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
+
+// Initial wallet detection
+detectWallets();
