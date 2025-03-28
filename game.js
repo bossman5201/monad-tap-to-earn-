@@ -186,20 +186,43 @@ async function initializeAppKit() {
         if (!window.ReownAppKit) {
             console.log('ReownAppKit not found, attempting to load dynamically...');
             const script = document.createElement('script');
-            script.src = 'https://unpkg.com/@reown/appkit@1.2.5/dist/index.umd.js';
-            script.async = true;
-            document.head.appendChild(script);
+            let scriptLoaded = false;
+            let attempts = 0;
+            const maxAttempts = 3;
+            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.2.5/dist/index.umd.js';
+            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.2.5/dist/index.umd.js';
 
-            // Wait for the script to load
-            await new Promise((resolve, reject) => {
-                script.onload = resolve;
-                script.onerror = () => reject(new Error('Failed to load ReownAppKit script dynamically.'));
-            });
+            while (!scriptLoaded && attempts < maxAttempts) {
+                attempts++;
+                console.log(`Attempt ${attempts} to load ReownAppKit...`);
+                script.src = attempts === maxAttempts ? fallbackUrl : primaryUrl;
+                script.async = true;
+                document.head.appendChild(script);
+
+                try {
+                    await new Promise((resolve, reject) => {
+                        script.onload = () => {
+                            scriptLoaded = true;
+                            resolve();
+                        };
+                        script.onerror = () => reject(new Error(`Failed to load ReownAppKit script from ${script.src}`));
+                    });
+                } catch (error) {
+                    console.error(error.message);
+                    if (attempts === maxAttempts) {
+                        throw new Error('Failed to load ReownAppKit script after multiple attempts.');
+                    }
+                    // Wait 1 second before retrying
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    // Remove the failed script tag
+                    script.remove();
+                }
+            }
         }
 
         // Wait for ReownAppKit to be available
         const waitForReownAppKit = () => new Promise((resolve, reject) => {
-            const maxAttempts = 20; // Increased to 20 attempts (10 seconds)
+            const maxAttempts = 20; // 10 seconds
             let attempts = 0;
             const interval = setInterval(() => {
                 if (window.ReownAppKit) {
