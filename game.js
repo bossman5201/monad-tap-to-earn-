@@ -179,30 +179,30 @@ async function detectWallets() {
 
     // Check for window.ethereum (MetaMask, OKX Wallet, etc.)
     if (window.ethereum) {
-        let walletName = 'Ethereum Wallet';
         if (window.ethereum.isMetaMask && !detectedWallets.some(w => w.info.name === 'MetaMask')) {
-            walletName = 'MetaMask';
             detectedWallets.push({
-                info: { uuid: 'metamask', name: walletName },
+                info: { uuid: 'metamask', name: 'MetaMask' },
                 provider: window.ethereum
             });
         }
         if (window.ethereum.isOkxWallet && !detectedWallets.some(w => w.info.name === 'OKX Wallet')) {
-            walletName = 'OKX Wallet';
             detectedWallets.push({
-                info: { uuid: 'okx-wallet', name: walletName },
+                info: { uuid: 'okx-wallet', name: 'OKX Wallet' },
                 provider: window.ethereum
             });
         }
     }
 
-    // Check for window.solana (Phantom-specific)
+    // Skip Phantom for now since it’s causing issues with ethers.js
+    // We’ll reintroduce Phantom support once the ethers.js issue is resolved
+    /*
     if (window.solana && window.solana.isPhantom && !detectedWallets.some(w => w.info.name === 'Phantom')) {
         detectedWallets.push({
             info: { uuid: 'phantom', name: 'Phantom' },
             provider: window.solana
         });
     }
+    */
 
     // Fallback for EIP-6963
     window.addEventListener('eip6963:announceProvider', (event) => {
@@ -222,7 +222,7 @@ async function detectWallets() {
 function updateWalletList() {
     walletList.innerHTML = '';
     if (detectedWallets.length === 0) {
-        walletList.innerHTML = '<p>No wallets detected. Please install a wallet like MetaMask, OKX Wallet, or Phantom.</p>';
+        walletList.innerHTML = '<p>No wallets detected. Please install a wallet like MetaMask or OKX Wallet.</p>';
         return;
     }
 
@@ -247,19 +247,7 @@ async function connectWallet(uuid) {
         return;
     }
 
-    // Special handling for Phantom (Solana provider)
-    if (wallet.info.uuid === 'phantom') {
-        try {
-            await wallet.provider.connect();
-            provider = new ethers.providers.Web3Provider(wallet.provider);
-        } catch (error) {
-            console.error('Phantom connection failed:', error);
-            alert('Failed to connect Phantom wallet: ' + (error.message || 'Unknown error'));
-            return;
-        }
-    } else {
-        provider = new ethers.providers.Web3Provider(wallet.provider);
-    }
+    provider = new ethers.providers.Web3Provider(wallet.provider);
 
     try {
         // Request accounts to trigger wallet popup
@@ -332,7 +320,7 @@ async function authorizeTaps() {
         const tx = await contract.setAuthorizedTaps(account, tapCount);
         await tx.wait();
         authorizedTaps = tapCount;
-        authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
+        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         authorizeMoreTapsButton.style.display = 'none';
@@ -360,8 +348,8 @@ async function disconnectWallet() {
     tapButton.disabled = true;
     tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
     tapDisabledMessage.style.display = 'block';
-    authorizedTapsDisplay.textContent = `Authorized Taps Remaining: 0/10000`;
-    gasBalanceDisplay.textContent = `MON Balance: 0`;
+    smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: 0/10000`);
+    smoothUpdate(gasBalanceDisplay, `MON Balance: 0`);
     clickSound.play();
 }
 
@@ -370,7 +358,7 @@ async function updateMonBalance() {
     if (provider && account) {
         const balance = await provider.getBalance(account);
         monBalance = ethers.utils.formatEther(balance);
-        gasBalanceDisplay.textContent = `MON Balance: ${parseFloat(monBalance).toFixed(4)}`;
+        smoothUpdate(gasBalanceDisplay, `MON Balance: ${parseFloat(monBalance).toFixed(4)}`);
     }
 }
 
@@ -463,10 +451,10 @@ async function updateStats() {
             console.error('Failed to fetch stats:', error);
         }
     }
-    fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
-    tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
-    invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
-    authorizedTapsDisplay.textContent = `Authorized Taps Remaining: ${authorizedTaps}/10000`;
+    smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+    smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
+    smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
+    smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
@@ -539,9 +527,9 @@ const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
 totalFuel = savedState.totalFuel || 0;
 totalTaps = savedState.totalTaps || 0;
 invitesSent = savedState.invitesSent || 0;
-fuelDisplay.textContent = `Total Fuel: ${totalFuel}`;
-tapsDisplay.textContent = `Total Taps: ${totalTaps}`;
-invitesDisplay.textContent = `Invites Sent: ${invitesSent}`;
+smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
+smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
 
 // Initial wallet detection
 detectWallets();
