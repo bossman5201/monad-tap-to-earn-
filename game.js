@@ -182,9 +182,24 @@ let modal;
 
 async function initializeAppKit() {
     try {
+        // Check if ReownAppKit is already available
+        if (!window.ReownAppKit) {
+            console.log('ReownAppKit not found, attempting to load dynamically...');
+            const script = document.createElement('script');
+            script.src = 'https://unpkg.com/@reown/appkit@1.2.5/dist/index.umd.js';
+            script.async = true;
+            document.head.appendChild(script);
+
+            // Wait for the script to load
+            await new Promise((resolve, reject) => {
+                script.onload = resolve;
+                script.onerror = () => reject(new Error('Failed to load ReownAppKit script dynamically.'));
+            });
+        }
+
         // Wait for ReownAppKit to be available
         const waitForReownAppKit = () => new Promise((resolve, reject) => {
-            const maxAttempts = 10;
+            const maxAttempts = 20; // Increased to 20 attempts (10 seconds)
             let attempts = 0;
             const interval = setInterval(() => {
                 if (window.ReownAppKit) {
@@ -192,7 +207,7 @@ async function initializeAppKit() {
                     resolve(window.ReownAppKit);
                 } else if (attempts >= maxAttempts) {
                     clearInterval(interval);
-                    reject(new Error('ReownAppKit failed to load after multiple attempts.'));
+                    reject(new Error('ReownAppKit failed to load after multiple attempts. Please check your network connection or try again later.'));
                 }
                 attempts++;
             }, 500); // Check every 500ms
