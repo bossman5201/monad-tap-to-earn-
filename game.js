@@ -160,22 +160,21 @@ let signer;
 let account;
 let contract;
 
-// Reown AppKit Setup
+// Reown AppKit Setup (Following the Reown Guide)
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided Project ID
 const metadata = {
     name: 'Rocket Fuel Miner',
     description: 'A fun game to mine rocket fuel on the Monad Testnet',
-    url: window.location.origin, // Dynamically set to the current domain
+    url: window.location.origin,
     icons: ['https://avatars.githubusercontent.com/u/37784886']
 };
 
-// Define the Monad Testnet network
 const monadTestnet = {
-    chainId: 10143, // Monad Testnet chain ID
+    chainId: 10143,
     name: 'Monad Testnet',
     currency: 'MON',
-    explorerUrl: 'https://testnet.monadexplorer.com/', // Provided Block Explorer URL
-    rpcUrl: 'https://testnet-rpc.monad.xyz/' // Provided RPC URL
+    explorerUrl: 'https://testnet.monadexplorer.com/',
+    rpcUrl: 'https://testnet-rpc.monad.xyz/'
 };
 
 let modal;
@@ -183,15 +182,15 @@ let modal;
 async function initializeAppKit() {
     console.log('Starting Reown AppKit initialization...');
     try {
-        // Check if ReownAppKit is already available
+        // Check if ReownAppKit is available
         if (!window.ReownAppKit) {
             console.log('ReownAppKit not found, attempting to load dynamically...');
             const script = document.createElement('script');
             let scriptLoaded = false;
             let attempts = 0;
             const maxAttempts = 3;
-            const primaryUrl = 'https://unpkg.com/@reown/appkit@latest/dist/index.umd.js';
-            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@latest/dist/index.umd.js';
+            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.2.3/dist/index.umd.js';
+            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.2.3/dist/index.umd.js';
 
             while (!scriptLoaded && attempts < maxAttempts) {
                 attempts++;
@@ -200,143 +199,115 @@ async function initializeAppKit() {
                 script.async = true;
                 document.head.appendChild(script);
 
-                try {
-                    await new Promise((resolve, reject) => {
-                        script.onload = () => {
-                            scriptLoaded = true;
-                            console.log(`Successfully loaded ReownAppKit script from ${script.src}`);
-                            resolve();
-                        };
-                        script.onerror = () => reject(new Error(`Failed to load ReownAppKit script from ${script.src}`));
-                    });
-                } catch (error) {
+                await new Promise((resolve, reject) => {
+                    script.onload = () => {
+                        scriptLoaded = true;
+                        console.log(`Successfully loaded ReownAppKit script from ${script.src}`);
+                        resolve();
+                    };
+                    script.onerror = () => reject(new Error(`Failed to load ReownAppKit script from ${script.src}`));
+                }).catch(error => {
                     console.error(error.message);
                     if (attempts === maxAttempts) {
                         throw new Error('Failed to load ReownAppKit script after multiple attempts.');
                     }
-                    // Wait 1 second before retrying
-                    await new Promise(resolve => setTimeout(resolve, 1000));
-                    // Remove the failed script tag
                     script.remove();
-                }
+                    return new Promise(resolve => setTimeout(resolve, 1000));
+                });
             }
         } else {
             console.log('ReownAppKit already loaded in window.');
         }
 
         // Wait for ReownAppKit to be available
-        const waitForReownAppKit = () => new Promise((resolve, reject) => {
-            const maxAttempts = 20; // 10 seconds
+        await new Promise((resolve, reject) => {
+            const maxAttempts = 20;
             let attempts = 0;
             const interval = setInterval(() => {
                 if (window.ReownAppKit) {
                     clearInterval(interval);
                     console.log('ReownAppKit is now available in window.');
-                    resolve(window.ReownAppKit);
+                    resolve();
                 } else if (attempts >= maxAttempts) {
                     clearInterval(interval);
-                    reject(new Error('ReownAppKit failed to load after multiple attempts. Please check your network connection or try again later.'));
+                    reject(new Error('ReownAppKit failed to load after multiple attempts.'));
                 }
                 attempts++;
                 console.log(`Waiting for ReownAppKit... Attempt ${attempts}/${maxAttempts}`);
-            }, 500); // Check every 500ms
+            }, 500);
         });
 
-        await waitForReownAppKit();
+        // Initialize the modal (as per the Reown guide)
         console.log('Creating Reown AppKit modal...');
-        modal = await ReownAppKit.createAppKit({
+        modal = new window.ReownAppKit.AppKit({
             projectId: projectId,
             metadata: metadata,
-            networks: [monadTestnet],
-            adapters: [new ReownAppKit.EthersAdapter()],
-            features: {
-                analytics: false
-            }
+            chains: [monadTestnet],
+            defaultChain: monadTestnet
         });
+
         console.log('Reown AppKit initialized successfully. Modal created:', modal);
     } catch (error) {
         console.error('Failed to initialize Reown AppKit:', error.message);
-        console.error('Error details:', error);
         alert('Failed to initialize wallet connection: ' + error.message);
     }
 }
 
-// Wallet Connection with Reown AppKit
+// Wallet Connection (Adapted from the Reown Guide)
 async function connectWallet() {
-    console.log('Connect Wallet button clicked.');
+    console.log('Connect wallet button clicked.');
     if (!modal) {
-        console.error('Reown AppKit modal not initialized. Modal is:', modal);
-        alert('Wallet connection failed: Reown AppKit modal not initialized. Check the console for details.');
+        console.error('Reown AppKit modal not initialized.');
+        alert('Wallet connection failed: Reown AppKit modal not initialized.');
         return;
     }
 
     try {
         console.log('Opening Reown AppKit modal...');
-        await modal.open();
+        await modal.openModal();
         console.log('Reown AppKit modal opened successfully.');
-        
-        // Wait for the user to connect
-        const walletProvider = await new Promise((resolve) => {
-            console.log('Subscribing to provider state...');
-            modal.subscribeProvider((state) => {
-                console.log('Provider state updated:', state);
-                if (state['eip155']) {
-                    console.log('EIP-155 provider found:', state['eip155']);
-                    resolve(state['eip155']);
-                }
+
+        // Wait for wallet connection
+        const { address, chainId } = await new Promise((resolve) => {
+            modal.on('connect', (data) => {
+                console.log('Wallet connected:', data);
+                resolve(data);
+            });
+            modal.on('disconnect', () => {
+                console.log('Wallet disconnected');
+                disconnectWallet();
             });
         });
 
-        if (!walletProvider) {
-            throw new Error('No provider returned from Reown AppKit');
+        if (!address) {
+            throw new Error('No address returned from Reown AppKit');
         }
 
-        console.log('Wallet provider received:', walletProvider);
-        // Use window.ethereum if available, otherwise use the wallet provider
-        provider = new ethers.BrowserProvider(walletProvider || window.ethereum);
-        signer = await provider.getSigner();
-        account = await signer.getAddress();
-        console.log('Connected account:', account);
+        console.log('Connected address:', address);
+        console.log('Connected chainId:', chainId);
 
-        const network = await provider.getNetwork();
-        const expectedChainId = 10143; // Monad Testnet chain ID
-        console.log('Current network chainId:', network.chainId);
-        if (Number(network.chainId) !== expectedChainId) {
+        // Ensure the wallet is on the Monad Testnet
+        const expectedChainId = 10143;
+        if (Number(chainId) !== expectedChainId) {
             try {
                 console.log('Switching to Monad Testnet (Chain ID: 10143)...');
-                await provider.send('wallet_switchEthereumChain', [{ chainId: '0x27CB' }]); // 10143 in hex
+                await modal.switchNetwork(monadTestnet);
             } catch (switchError) {
-                if (switchError.code === 4902) { // Chain not added
-                    try {
-                        await provider.send('wallet_addEthereumChain', [{
-                            chainId: '0x27CB',
-                            chainName: 'Monad Testnet',
-                            nativeCurrency: {
-                                name: 'MON',
-                                symbol: 'MON',
-                                decimals: 18
-                            },
-                            rpcUrls: ['https://testnet-rpc.monad.xyz/'],
-                            blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-                        }]);
-                    } catch (addError) {
-                        console.error('Failed to add Monad Testnet:', addError);
-                        alert('Please manually add the Monad Testnet (Chain ID: 10143) in your wallet.');
-                        tapButton.disabled = true;
-                        tapDisabledMessage.textContent = 'Please add the Monad Testnet (Chain ID: 10143)!';
-                        tapDisabledMessage.style.display = 'block';
-                        return;
-                    }
-                } else {
-                    console.error('Network switch failed:', switchError);
-                    alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
-                    tapButton.disabled = true;
-                    tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
-                    tapDisabledMessage.style.display = 'block';
-                    return;
-                }
+                console.error('Network switch failed:', switchError);
+                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
+                tapButton.disabled = true;
+                tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
+                tapDisabledMessage.style.display = 'block';
+                return;
             }
         }
+
+        // Set up the provider
+        const providerFromModal = modal.getProvider();
+        provider = new ethers.BrowserProvider(providerFromModal);
+        signer = await provider.getSigner();
+        account = address;
+        console.log('Connected account:', account);
 
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
@@ -361,7 +332,7 @@ async function connectWallet() {
 // Disconnect Wallet
 async function disconnectWallet() {
     if (modal) {
-        await modal.disconnect();
+        await modal.closeModal();
     }
     provider = null;
     signer = null;
@@ -379,7 +350,6 @@ async function disconnectWallet() {
     tapDisabledMessage.style.display = 'block';
     smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: 0/10000`);
     smoothUpdate(gasBalanceDisplay, `MON Balance: 0`);
-    // clickSound.play();
 }
 
 // Update MON Balance
@@ -392,7 +362,7 @@ async function updateMonBalance() {
 }
 
 // Tap Handler
-const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d'; // Updated contract address
+const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
 const ABI = [
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
@@ -418,7 +388,6 @@ async function handleTap() {
         return;
     }
 
-    // Check gas balance
     const gasEstimate = await contract.estimateGas.tapWithSignature(account, 10000, nonce, 0, '0x', '0x');
     const gasPrice = await provider.getGasPrice();
     const gasCost = ethers.formatEther(gasEstimate * gasPrice);
@@ -430,17 +399,14 @@ async function handleTap() {
     }
 
     try {
-        // Optimistically update the UI
         totalFuel++;
         totalTaps++;
         authorizedTaps--;
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        // tapSound.play();
         spawnParticles();
 
-        // Submit the transaction
         const sig = ethers.splitSignature(signature);
         const tx = await contract.tapWithSignature(
             account,
@@ -468,11 +434,11 @@ async function handleTap() {
 
 // Authorize Taps
 async function authorizeTaps() {
-    const tapCount = 10000; // Authorize 10,000 taps
+    const tapCount = 10000;
     const domain = {
         name: "RocketFuelMiner",
         version: "1",
-        chainId: 10143, // Monad Testnet
+        chainId: 10143,
         verifyingContract: CONTRACT_ADDRESS
     };
     const types = {
@@ -523,7 +489,7 @@ async function updateStats() {
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
-// Particle Effects (Tap Feedback Animation)
+// Particle Effects
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
     for (let i = 0; i < 10; i++) {
@@ -556,24 +522,20 @@ authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
 
 donateButton.addEventListener('click', () => {
     donateModal.style.display = 'flex';
-    // clickSound.play();
 });
 
 closeDonate.addEventListener('click', () => {
     donateModal.style.display = 'none';
-    // clickSound.play();
 });
 
 backToGameButton.addEventListener('click', () => {
     donateModal.style.display = 'none';
-    // clickSound.play();
 });
 
 copyAddressButton.addEventListener('click', () => {
     const address = donateAddress.textContent;
     navigator.clipboard.writeText(address).then(() => {
         copyAddressButton.textContent = 'Copied!';
-        // clickSound.play();
         setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
     });
 });
