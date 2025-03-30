@@ -184,58 +184,10 @@ async function initializeAppKit() {
     try {
         // Check if ReownAppKit is available
         if (!window.ReownAppKit) {
-            console.log('ReownAppKit not found, attempting to load dynamically...');
-            const script = document.createElement('script');
-            let scriptLoaded = false;
-            let attempts = 0;
-            const maxAttempts = 3;
-            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.7.1/dist/index.umd.js';
-            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.7.1/dist/index.umd.js';
-
-            while (!scriptLoaded && attempts < maxAttempts) {
-                attempts++;
-                console.log(`Attempt ${attempts} to load ReownAppKit from ${attempts === maxAttempts ? fallbackUrl : primaryUrl}...`);
-                script.src = attempts === maxAttempts ? fallbackUrl : primaryUrl;
-                script.async = true;
-                document.head.appendChild(script);
-
-                await new Promise((resolve, reject) => {
-                    script.onload = () => {
-                        scriptLoaded = true;
-                        console.log(`Successfully loaded ReownAppKit script from ${script.src}`);
-                        resolve();
-                    };
-                    script.onerror = () => reject(new Error(`Failed to load ReownAppKit script from ${script.src}`));
-                }).catch(error => {
-                    console.error(error.message);
-                    if (attempts === maxAttempts) {
-                        throw new Error('Failed to load ReownAppKit script after multiple attempts.');
-                    }
-                    script.remove();
-                    return new Promise(resolve => setTimeout(resolve, 1000));
-                });
-            }
-        } else {
-            console.log('ReownAppKit already loaded in window.');
+            console.error('ReownAppKit not found in window. Ensure the script is loaded in index.html.');
+            alert('Failed to initialize wallet connection: ReownAppKit script not loaded.');
+            return;
         }
-
-        // Wait for ReownAppKit to be available
-        await new Promise((resolve, reject) => {
-            const maxAttempts = 20;
-            let attempts = 0;
-            const interval = setInterval(() => {
-                if (window.ReownAppKit) {
-                    clearInterval(interval);
-                    console.log('ReownAppKit is now available in window.');
-                    resolve();
-                } else if (attempts >= maxAttempts) {
-                    clearInterval(interval);
-                    reject(new Error('ReownAppKit failed to load after multiple attempts.'));
-                }
-                attempts++;
-                console.log(`Waiting for ReownAppKit... Attempt ${attempts}/${maxAttempts}`);
-            }, 500);
-        });
 
         // Initialize the modal (as per the Reown guide)
         console.log('Creating Reown AppKit modal...');
@@ -243,7 +195,10 @@ async function initializeAppKit() {
             projectId: projectId,
             metadata: metadata,
             chains: [monadTestnet],
-            defaultChain: monadTestnet
+            defaultChain: monadTestnet,
+            features: {
+                analytics: true // Optional - enable analytics as per the guide
+            }
         });
 
         console.log('Reown AppKit initialized successfully. Modal created:', modal);
@@ -264,7 +219,7 @@ async function connectWallet() {
 
     try {
         console.log('Opening Reown AppKit modal...');
-        await modal.openModal();
+        await modal.open(); // Use modal.open() as per the guide
         console.log('Reown AppKit modal opened successfully.');
 
         // Fallback for Android: Trigger MetaMask deep link if modal doesn't work
@@ -344,7 +299,7 @@ async function connectWallet() {
 // Disconnect Wallet
 async function disconnectWallet() {
     if (modal) {
-        await modal.closeModal();
+        await modal.close();
     }
     provider = null;
     signer = null;
