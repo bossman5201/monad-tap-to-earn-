@@ -189,8 +189,8 @@ async function initializeAppKit() {
             let scriptLoaded = false;
             let attempts = 0;
             const maxAttempts = 3;
-            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.2.3/dist/index.umd.js';
-            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.2.3/dist/index.umd.js';
+            const primaryUrl = 'https://unpkg.com/@reown/appkit@1.7.1/dist/index.umd.js';
+            const fallbackUrl = 'https://cdn.jsdelivr.net/npm/@reown/appkit@1.7.1/dist/index.umd.js';
 
             while (!scriptLoaded && attempts < maxAttempts) {
                 attempts++;
@@ -267,8 +267,18 @@ async function connectWallet() {
         await modal.openModal();
         console.log('Reown AppKit modal opened successfully.');
 
+        // Fallback for Android: Trigger MetaMask deep link if modal doesn't work
+        const isAndroid = /Android/i.test(navigator.userAgent);
+        if (isAndroid && !window.ethereum) {
+            console.log('Android detected, attempting MetaMask deep link...');
+            const deepLink = `metamask://wc?uri=${encodeURIComponent(window.location.href)}`;
+            window.location.href = deepLink;
+            // Give some time for MetaMask to open
+            await new Promise(resolve => setTimeout(resolve, 3000));
+        }
+
         // Wait for wallet connection
-        const { address, chainId } = await new Promise((resolve) => {
+        const { address, chainId } = await new Promise((resolve, reject) => {
             modal.on('connect', (data) => {
                 console.log('Wallet connected:', data);
                 resolve(data);
@@ -277,6 +287,8 @@ async function connectWallet() {
                 console.log('Wallet disconnected');
                 disconnectWallet();
             });
+            // Timeout after 30 seconds if no connection
+            setTimeout(() => reject(new Error('Wallet connection timed out')), 30000);
         });
 
         if (!address) {
