@@ -160,8 +160,8 @@ let signer;
 let account;
 let contract;
 
-// Reown AppKit Setup (Following the Reown Guide)
-const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided Project ID
+// Reown AppKit Setup
+const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const metadata = {
     name: 'Rocket Fuel Miner',
     description: 'A fun game to mine rocket fuel on the Monad Testnet',
@@ -177,146 +177,52 @@ const monadTestnet = {
     rpcUrl: 'https://testnet-rpc.monad.xyz/'
 };
 
-let modal;
-
+// Initialize Reown AppKit
 async function initializeAppKit() {
-    console.log('Starting Reown AppKit initialization...');
+    if (!window.ReownAppKit) {
+        console.error('ReownAppKit not loaded');
+        return;
+    }
     try {
-        // Check if ReownAppKit is available
-        if (!window.ReownAppKit) {
-            console.error('ReownAppKit not found in window. Ensure the script is loaded in index.html.');
-            alert('Failed to initialize wallet connection: ReownAppKit script not loaded.');
-            return;
-        }
-
-        // Initialize the modal (as per the Reown guide)
-        console.log('Creating Reown AppKit modal...');
-        modal = new window.ReownAppKit.AppKit({
+        await ReownAppKit.initialize({
             projectId: projectId,
             metadata: metadata,
             chains: [monadTestnet],
             defaultChain: monadTestnet,
-            features: {
-                analytics: true // Optional - enable analytics as per the guide
-            }
+            features: { analytics: true }
         });
-
-        console.log('Reown AppKit initialized successfully. Modal created:', modal);
+        console.log('Reown AppKit initialized successfully.');
     } catch (error) {
-        console.error('Failed to initialize Reown AppKit:', error.message);
-        alert('Failed to initialize wallet connection: ' + error.message);
+        console.error('Failed to initialize Reown AppKit:', error);
     }
 }
 
-// Wallet Connection (Adapted from the Reown Guide)
+// Wallet Connection
 async function connectWallet() {
-    console.log('Connect wallet button clicked.');
-    if (!modal) {
-        console.error('Reown AppKit modal not initialized.');
-        alert('Wallet connection failed: Reown AppKit modal not initialized.');
+    if (!window.ethereum) {
+        alert('MetaMask is not installed. Please install it to connect your wallet.');
         return;
     }
-
+    if (!window.ReownAppKit) {
+        console.error('ReownAppKit not initialized.');
+        return;
+    }
     try {
-        console.log('Opening Reown AppKit modal...');
-        await modal.open(); // Use modal.open() as per the guide
-        console.log('Reown AppKit modal opened successfully.');
-
-        // Fallback for Android: Trigger MetaMask deep link if modal doesn't work
-        const isAndroid = /Android/i.test(navigator.userAgent);
-        if (isAndroid && !window.ethereum) {
-            console.log('Android detected, attempting MetaMask deep link...');
-            const deepLink = `metamask://wc?uri=${encodeURIComponent(window.location.href)}`;
-            window.location.href = deepLink;
-            // Give some time for MetaMask to open
-            await new Promise(resolve => setTimeout(resolve, 3000));
-        }
-
-        // Wait for wallet connection
-        const { address, chainId } = await new Promise((resolve, reject) => {
-            modal.on('connect', (data) => {
-                console.log('Wallet connected:', data);
-                resolve(data);
-            });
-            modal.on('disconnect', () => {
-                console.log('Wallet disconnected');
-                disconnectWallet();
-            });
-            // Timeout after 30 seconds if no connection
-            setTimeout(() => reject(new Error('Wallet connection timed out')), 30000);
-        });
-
-        if (!address) {
-            throw new Error('No address returned from Reown AppKit');
-        }
-
-        console.log('Connected address:', address);
-        console.log('Connected chainId:', chainId);
-
-        // Ensure the wallet is on the Monad Testnet
-        const expectedChainId = 10143;
-        if (Number(chainId) !== expectedChainId) {
-            try {
-                console.log('Switching to Monad Testnet (Chain ID: 10143)...');
-                await modal.switchNetwork(monadTestnet);
-            } catch (switchError) {
-                console.error('Network switch failed:', switchError);
-                alert('Please manually switch to the Monad Testnet (Chain ID: 10143) in your wallet.');
-                tapButton.disabled = true;
-                tapDisabledMessage.textContent = 'Please switch to the Monad Testnet (Chain ID: 10143)!';
-                tapDisabledMessage.style.display = 'block';
-                return;
-            }
-        }
-
-        // Set up the provider
-        const providerFromModal = modal.getProvider();
-        provider = new ethers.BrowserProvider(providerFromModal);
-        signer = await provider.getSigner();
-        account = address;
-        console.log('Connected account:', account);
-
-        walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
-        connectWalletButton.style.display = 'none';
-        disconnectWalletButton.style.display = 'inline-block';
-        tapButton.disabled = false;
-        tapDisabledMessage.style.display = 'none';
-
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-        await updateStats();
-        nonce = Number(await contract.nonces(account));
-        await updateMonBalance();
-        await authorizeTaps();
+        await ReownAppKit.showWalletModal();
+        console.log('Wallet modal opened.');
     } catch (error) {
-        console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
-        tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Please connect to the Monad Testnet (Chain ID: 10143)!';
-        tapDisabledMessage.style.display = 'block';
+        console.error('Failed to open wallet modal:', error);
     }
 }
 
 // Disconnect Wallet
-async function disconnectWallet() {
-    if (modal) {
-        await modal.close();
+function disconnectWallet() {
+    if (window.ReownAppKit) {
+        ReownAppKit.disconnect();
+        document.getElementById('connect-wallet').style.display = 'inline-block';
+        document.getElementById('disconnect-wallet').style.display = 'none';
+        document.getElementById('wallet-address').textContent = '';
     }
-    provider = null;
-    signer = null;
-    account = null;
-    contract = null;
-    signature = null;
-    authorizedTaps = 0;
-    nonce = 0;
-    monBalance = 0;
-    walletAddressDisplay.textContent = '';
-    connectWalletButton.style.display = 'inline-block';
-    disconnectWalletButton.style.display = 'none';
-    tapButton.disabled = true;
-    tapDisabledMessage.textContent = 'Connect Wallet to Tap!';
-    tapDisabledMessage.style.display = 'block';
-    smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: 0/10000`);
-    smoothUpdate(gasBalanceDisplay, `MON Balance: 0`);
 }
 
 // Update MON Balance
@@ -483,40 +389,49 @@ function smoothUpdate(element, newValue) {
 }
 
 // Event Listeners
-connectWalletButton.addEventListener('click', connectWallet);
-disconnectWalletButton.addEventListener('click', disconnectWallet);
-authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
+document.addEventListener('DOMContentLoaded', async () => {
+    // Initialize Reown AppKit
+    await initializeAppKit();
 
-donateButton.addEventListener('click', () => {
-    donateModal.style.display = 'flex';
-});
-
-closeDonate.addEventListener('click', () => {
-    donateModal.style.display = 'none';
-});
-
-backToGameButton.addEventListener('click', () => {
-    donateModal.style.display = 'none';
-});
-
-copyAddressButton.addEventListener('click', () => {
-    const address = donateAddress.textContent;
-    navigator.clipboard.writeText(address).then(() => {
-        copyAddressButton.textContent = 'Copied!';
-        setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
+    // Add event listeners
+    document.getElementById('connect-wallet').addEventListener('click', connectWallet);
+    document.getElementById('disconnect-wallet').addEventListener('click', disconnectWallet);
+    document.getElementById('authorize-more-taps').addEventListener('click', authorizeTaps);
+    document.getElementById('donate-button').addEventListener('click', () => {
+        donateModal.style.display = 'flex';
     });
+    document.getElementById('close-donate').addEventListener('click', () => {
+        donateModal.style.display = 'none';
+    });
+    document.getElementById('back-to-game').addEventListener('click', () => {
+        donateModal.style.display = 'none';
+    });
+    document.getElementById('copy-address').addEventListener('click', () => {
+        const address = donateAddress.textContent;
+        navigator.clipboard.writeText(address).then(() => {
+            copyAddressButton.textContent = 'Copied!';
+            setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
+        });
+    });
+    document.getElementById('tap-button').addEventListener('click', handleTap);
+
+    // Load Game State
+    const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
+    totalFuel = savedState.totalFuel || 0;
+    totalTaps = savedState.totalTaps || 0;
+    invitesSent = savedState.invitesSent || 0;
+    smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
+    smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
+    smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
+
+    // Listen for wallet connection
+    if (window.ReownAppKit) {
+        ReownAppKit.on('connect', (data) => {
+            console.log('Wallet connected:', data);
+            const walletAddress = data.address;
+            document.getElementById('connect-wallet').style.display = 'none';
+            document.getElementById('disconnect-wallet').style.display = 'inline-block';
+            document.getElementById('wallet-address').textContent = `Connected: ${walletAddress.slice(0, 6)}...${walletAddress.slice(-4)}`;
+        });
+    }
 });
-
-tapButton.addEventListener('click', handleTap);
-
-// Load Game State
-const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
-totalFuel = savedState.totalFuel || 0;
-totalTaps = savedState.totalTaps || 0;
-invitesSent = savedState.invitesSent || 0;
-smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
-smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
-smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
-
-// Initialize Reown AppKit
-initializeAppKit();
