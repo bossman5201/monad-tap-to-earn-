@@ -141,6 +141,7 @@ const invitesDisplay = document.getElementById('invites-display');
 const authorizedTapsDisplay = document.getElementById('authorized-taps');
 const gasBalanceDisplay = document.getElementById('gas-balance');
 const tapDisabledMessage = document.getElementById('tap-disabled-message');
+const connectWalletButton = document.getElementById('connect-wallet');
 const disconnectWalletButton = document.getElementById('disconnect-wallet');
 const walletAddressDisplay = document.getElementById('wallet-address');
 const authorizeMoreTapsButton = document.getElementById('authorize-more-taps');
@@ -157,10 +158,10 @@ let signer;
 let account;
 let contract;
 
-// RainbowKit and Wagmi Setup
-const { createConfig, http, WagmiProvider, useAccount, useDisconnect } = window.wagmi;
-const { RainbowKitProvider, ConnectButton } = window['@rainbow-me/rainbowkit'];
-const { QueryClient, QueryClientProvider } = window.ReactQuery;
+// Wagmi Setup
+const { createConfig, configureChains, connect, disconnect, getAccount, getNetwork } = window.wagmi;
+const { publicClient } = window.wagmi;
+const { WalletConnectConnector } = window.wagmi.connectors;
 
 // Define Monad Testnet chain
 const monadTestnet = {
@@ -182,70 +183,72 @@ const monadTestnet = {
     testnet: true,
 };
 
-// Create Wagmi config
-const projectId = 'YOUR_WALLETCONNECT_PROJECT_ID'; // Replace with your WalletConnect project ID
+// Configure Chains
+const { chains, publicClient: configuredPublicClient } = configureChains(
+    [monadTestnet],
+    [window.wagmi.publicProvider()]
+);
+
+// Create Wagmi Config
+const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided project ID
 const config = createConfig({
-    chains: [monadTestnet],
-    transports: {
-        [monadTestnet.id]: http(),
-    },
-    projectId: projectId,
+    autoConnect: true,
+    connectors: [
+        new WalletConnectConnector({
+            chains,
+            options: {
+                projectId: projectId,
+                metadata: {
+                    name: 'Rocket Fuel Miner',
+                    description: 'A fun game to mine rocket fuel on the Monad Testnet',
+                    url: window.location.origin,
+                    icons: ['https://avatars.githubusercontent.com/u/37784886']
+                }
+            }
+        })
+    ],
+    publicClient: configuredPublicClient,
 });
 
-// Create QueryClient for TanStack Query
-const queryClient = new QueryClient();
-
-// React Component for Connect Wallet Button
-const ConnectWalletComponent = () => {
-    const { address, isConnected } = useAccount();
-    const { disconnect } = useDisconnect();
-
-    // Update global account variable and UI
-    React.useEffect(() => {
-        if (isConnected && address) {
-            account = address;
-            walletAddressDisplay.textContent = `Connected: ${address.slice(0, 6)}...${address.slice(-4)}`;
+// Connect Wallet
+async function connectWallet() {
+    if (!window.ethereum && !config.connectors.length) {
+        alert('No wallet provider detected. Please install MetaMask or use WalletConnect.');
+        return;
+    }
+    try {
+        const connector = config.connectors[0];
+        await connect({ connector });
+        const accountData = getAccount();
+        if (accountData.isConnected && accountData.address) {
+            account = accountData.address;
+            walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+            connectWalletButton.style.display = 'none';
             disconnectWalletButton.style.display = 'inline-block';
             initializeEthers();
             updateStats();
-        } else {
-            account = null;
-            walletAddressDisplay.textContent = '';
-            disconnectWalletButton.style.display = 'none';
-            tapButton.disabled = true;
-            tapDisabledMessage.style.display = 'block';
         }
-    }, [isConnected, address]);
+    } catch (error) {
+        console.error('Wallet connection failed:', error);
+        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
+    }
+}
 
-    return React.createElement(ConnectButton);
-};
-
-// Render the Connect Wallet Component
-function renderConnectWallet() {
-    const container = document.getElementById('connect-wallet-container');
-    const root = ReactDOM.createRoot(container);
-    root.render(
-        React.createElement(
-            WagmiProvider,
-            { config: config },
-            React.createElement(
-                QueryClientProvider,
-                { client: queryClient },
-                React.createElement(
-                    RainbowKitProvider,
-                    null,
-                    React.createElement(ConnectWalletComponent)
-                )
-            )
-        )
-    );
+// Disconnect Wallet
+function disconnectWallet() {
+    disconnect();
+    account = null;
+    walletAddressDisplay.textContent = '';
+    connectWalletButton.style.display = 'inline-block';
+    disconnectWalletButton.style.display = 'none';
+    tapButton.disabled = true;
+    tapDisabledMessage.style.display = 'block';
 }
 
 // Initialize Ethers.js after wallet connection
 async function initializeEthers() {
     try {
-        const providerFromWagmi = window.ethereum; // MetaMask or other injected provider
-        provider = new ethers.BrowserProvider(providerFromWagmi);
+        provider = new ethers.BrowserProvider(window.ethereum || (await config.connectors[0].getProvider()));
         signer = await provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
         await updateMonBalance();
@@ -258,17 +261,6 @@ async function initializeEthers() {
         tapDisabledMessage.textContent = 'Failed to initialize wallet connection.';
         tapDisabledMessage.style.display = 'block';
     }
-}
-
-// Disconnect Wallet
-function disconnectWallet() {
-    const { disconnect } = useDisconnect();
-    disconnect();
-    account = null;
-    walletAddressDisplay.textContent = '';
-    disconnectWalletButton.style.display = 'none';
-    tapButton.disabled = true;
-    tapDisabledMessage.style.display = 'block';
 }
 
 // Update MON Balance
@@ -437,10 +429,9 @@ function smoothUpdate(element, newValue) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
-    // Render the Connect Wallet button
-    renderConnectWallet();
-
-    // Add event listeners
+    // Add manual connect button
+    connectWalletButton.style.display = 'inline-block';
+    connectWalletButton.addEventListener('click', connectWallet);
     disconnectWalletButton.addEventListener('click', disconnectWallet);
     authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
     donateButton.addEventListener('click', () => {
