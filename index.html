@@ -1,14 +1,24 @@
-<!DOCTYPE html>
+!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline'; connect-src 'self' https://testnet-rpc.monad.xyz ws://testnet-rpc.monad.xyz wss://testnet-rpc.monad.xyz https://*.reown.com wss://*.reown.com https://api.reown.com;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-eval'; style-src 'self' https://unpkg.com https://cdn.jsdelivr.net 'unsafe-inline'; connect-src 'self' https://testnet-rpc.monad.xyz ws://testnet-rpc.monad.xyz wss://testnet-rpc.monad.xyz https://*.walletconnect.com wss://*.walletconnect.com https://*.walletconnect.org wss://*.walletconnect.org;">
     <title>Rocket Fuel Miner</title>
     <link rel="icon" type="image/x-icon" href="https://via.placeholder.com/32">
     <link rel="stylesheet" href="styles.css">
-    <!-- Reown AppKit CSS (temporarily commented out until we host locally) -->
-    <!-- <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@reown/appkit@1.7.1/dist/style.css"> -->
+    <!-- React and ReactDOM -->
+    <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <!-- TanStack Query -->
+    <script src="https://unpkg.com/@tanstack/react-query@5.0.0/dist/react-query.umd.production.min.js"></script>
+    <!-- Viem -->
+    <script src="https://unpkg.com/viem@2.21.1/dist/umd.js"></script>
+    <!-- Wagmi -->
+    <script src="https://unpkg.com/wagmi@2.12.10/dist/umd.js"></script>
+    <!-- RainbowKit -->
+    <script src="https://unpkg.com/@rainbow-me/rainbowkit@2.1.5/dist/index.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/@rainbow-me/rainbowkit@2.1.5/dist/index.css">
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -16,7 +26,7 @@
     <div class="game-container">
         <div class="wallet-info">
             <span id="wallet-address"></span>
-            <button id="connect-wallet">Connect Wallet</button>
+            <div id="connect-wallet-container"></div>
             <button id="disconnect-wallet" style="display: none;">Disconnect</button>
             <button id="authorize-more-taps" style="display: none;">Authorize More Taps</button>
             <button id="donate-button">Donate</button>
@@ -44,11 +54,7 @@
         </div>
     </div>
 
-    <!-- <audio id="tap-sound" src="tap.mp3"></audio> -->
-    <!-- <audio id="click-sound" src="click.mp3"></audio> -->
     <script src="https://unpkg.com/ethers@6.14.0/dist/ethers.umd.min.js" type="application/javascript"></script>
-    <!-- Reown AppKit Script (temporarily commented out until we host locally or switch to RainbowKit) -->
-    <!-- <script src="https://cdn.jsdelivr.net/npm/@reown/appkit@1.7.1/dist/index.umd.js"></script> -->
     <script src="game.js" defer></script>
 </body>
 </html>
