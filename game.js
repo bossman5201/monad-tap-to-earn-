@@ -157,109 +157,95 @@ let provider;
 let signer;
 let account;
 let contract;
+let walletConnectProvider;
 
-// Wagmi Setup
-const { createConfig, configureChains, connect, disconnect, getAccount, getNetwork } = window.wagmi;
-const { publicClient } = window.wagmi;
-const { WalletConnectConnector } = window.wagmi.connectors;
-
-// Define Monad Testnet chain
+// WalletConnect Setup
+const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided project ID
 const monadTestnet = {
-    id: 10143,
+    chainId: 10143,
     name: 'Monad Testnet',
-    network: 'monad-testnet',
-    nativeCurrency: {
-        name: 'MON',
-        symbol: 'MON',
-        decimals: 18,
-    },
-    rpcUrls: {
-        default: { http: ['https://testnet-rpc.monad.xyz/'] },
-        public: { http: ['https://testnet-rpc.monad.xyz/'] },
-    },
-    blockExplorers: {
-        default: { name: 'Monad Explorer', url: 'https://testnet.monadexplorer.com/' },
-    },
-    testnet: true,
+    currency: 'MON',
+    rpcUrl: 'https://testnet-rpc.monad.xyz/',
+    explorerUrl: 'https://testnet.monadexplorer.com/'
 };
 
-// Configure Chains
-const { chains, publicClient: configuredPublicClient } = configureChains(
-    [monadTestnet],
-    [window.wagmi.publicProvider()]
-);
-
-// Create Wagmi Config
-const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided project ID
-const config = createConfig({
-    autoConnect: true,
-    connectors: [
-        new WalletConnectConnector({
-            chains,
-            options: {
+// Connect Wallet
+async function connectWallet() {
+    try {
+        // First, try MetaMask if available
+        if (window.ethereum) {
+            provider = new ethers.BrowserProvider(window.ethereum);
+            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
+            account = accounts[0];
+            await window.ethereum.request({
+                method: 'wallet_addEthereumChain',
+                params: [{
+                    chainId: '0x27CF', // 10143 in hex
+                    chainName: 'Monad Testnet',
+                    nativeCurrency: {
+                        name: 'MON',
+                        symbol: 'MON',
+                        decimals: 18
+                    },
+                    rpcUrls: ['https://testnet-rpc.monad.xyz/'],
+                    blockExplorerUrls: ['https://testnet.monadexplorer.com/']
+                }]
+            });
+        } else {
+            // Fallback to WalletConnect
+            walletConnectProvider = await window.EthereumProvider.init({
                 projectId: projectId,
+                chains: [10143],
+                optionalChains: [],
+                showQrModal: true,
                 metadata: {
                     name: 'Rocket Fuel Miner',
                     description: 'A fun game to mine rocket fuel on the Monad Testnet',
                     url: window.location.origin,
                     icons: ['https://avatars.githubusercontent.com/u/37784886']
                 }
-            }
-        })
-    ],
-    publicClient: configuredPublicClient,
-});
-
-// Connect Wallet
-async function connectWallet() {
-    if (!window.ethereum && !config.connectors.length) {
-        alert('No wallet provider detected. Please install MetaMask or use WalletConnect.');
-        return;
-    }
-    try {
-        const connector = config.connectors[0];
-        await connect({ connector });
-        const accountData = getAccount();
-        if (accountData.isConnected && accountData.address) {
-            account = accountData.address;
-            walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
-            connectWalletButton.style.display = 'none';
-            disconnectWalletButton.style.display = 'inline-block';
-            initializeEthers();
-            updateStats();
+            });
+            await walletConnectProvider.connect();
+            provider = new ethers.BrowserProvider(walletConnectProvider);
+            account = walletConnectProvider.accounts[0];
         }
-    } catch (error) {
-        console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
-    }
-}
 
-// Disconnect Wallet
-function disconnectWallet() {
-    disconnect();
-    account = null;
-    walletAddressDisplay.textContent = '';
-    connectWalletButton.style.display = 'inline-block';
-    disconnectWalletButton.style.display = 'none';
-    tapButton.disabled = true;
-    tapDisabledMessage.style.display = 'block';
-}
-
-// Initialize Ethers.js after wallet connection
-async function initializeEthers() {
-    try {
-        provider = new ethers.BrowserProvider(window.ethereum || (await config.connectors[0].getProvider()));
         signer = await provider.getSigner();
         contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
+        connectWalletButton.style.display = 'none';
+        disconnectWalletButton.style.display = 'inline-block';
         await updateMonBalance();
         await authorizeTaps();
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
+        updateStats();
     } catch (error) {
-        console.error('Failed to initialize Ethers.js:', error);
+        console.error('Wallet connection failed:', error);
+        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
         tapButton.disabled = true;
-        tapDisabledMessage.textContent = 'Failed to initialize wallet connection.';
         tapDisabledMessage.style.display = 'block';
+    }
+}
+
+// Disconnect Wallet
+async function disconnectWallet() {
+    try {
+        if (walletConnectProvider) {
+            await walletConnectProvider.disconnect();
+            walletConnectProvider = null;
+        }
+        provider = null;
+        signer = null;
+        account = null;
+        contract = null;
+        walletAddressDisplay.textContent = '';
+        connectWalletButton.style.display = 'inline-block';
+        disconnectWalletButton.style.display = 'none';
+        tapButton.disabled = true;
+        tapDisabledMessage.style.display = 'block';
+    } catch (error) {
+        console.error('Failed to disconnect wallet:', error);
     }
 }
 
@@ -275,7 +261,7 @@ async function updateMonBalance() {
 // Tap Handler
 const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
 const ABI = [
-    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"uint8"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
