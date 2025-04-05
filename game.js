@@ -1,4 +1,4 @@
-// Canvas Background Animation
+// Canvas Background Animation (Unchanged)
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -152,7 +152,13 @@ const backToGameButton = document.getElementById('back-to-game');
 const donateAddress = document.getElementById('donate-address');
 const copyAddressButton = document.getElementById('copy-address');
 
-// Ethers.js Setup
+// Ethers.js Setup and Error Check
+if (typeof ethers === 'undefined') {
+    console.error("ethers.js is not loaded. Check the script tag in index.html.");
+    walletAddressDisplay.textContent = "Error: ethers.js not loaded.";
+    throw new Error("ethers.js not found");
+}
+
 let provider;
 let signer;
 let account;
@@ -175,8 +181,8 @@ async function connectWallet() {
         // First, try MetaMask if available
         if (window.ethereum) {
             provider = new ethers.BrowserProvider(window.ethereum);
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            account = accounts[0];
+            await provider.send("eth_requestAccounts", []);
+            account = (await provider.listAccounts())[0];
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
@@ -207,7 +213,7 @@ async function connectWallet() {
             });
             await walletConnectProvider.connect();
             provider = new ethers.BrowserProvider(walletConnectProvider);
-            account = walletConnectProvider.accounts[0];
+            account = (await provider.listAccounts())[0];
         }
 
         signer = await provider.getSigner();
@@ -261,7 +267,7 @@ async function updateMonBalance() {
 // Tap Handler
 const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
 const ABI = [
-    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"uint8"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
     {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
@@ -304,7 +310,7 @@ async function handleTap() {
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
-        const sig = ethers.splitSignature(signature);
+        const sig = ethers.Signature.from(signature);
         const tx = await contract.tapWithSignature(
             account,
             10000,
@@ -387,7 +393,7 @@ async function updateStats() {
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
-// Particle Effects
+// Particle Effects (Unchanged)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
     for (let i = 0; i < 10; i++) {
@@ -407,15 +413,14 @@ function spawnParticles() {
     }
 }
 
-// Smooth Update
+// Smooth Update (Unchanged)
 function smoothUpdate(element, newValue) {
     element.classList.add('updated');
     element.textContent = newValue;
 }
 
-// Event Listeners
+// Event Listeners (Unchanged)
 document.addEventListener('DOMContentLoaded', () => {
-    // Add manual connect button
     connectWalletButton.style.display = 'inline-block';
     connectWalletButton.addEventListener('click', connectWallet);
     disconnectWalletButton.addEventListener('click', disconnectWallet);
@@ -438,7 +443,6 @@ document.addEventListener('DOMContentLoaded', () => {
     });
     tapButton.addEventListener('click', handleTap);
 
-    // Load Game State
     const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
     totalFuel = savedState.totalFuel || 0;
     totalTaps = savedState.totalTaps || 0;
