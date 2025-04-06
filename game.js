@@ -1,4 +1,7 @@
-// Canvas Background Animation (Unchanged)
+// Mock process for browser compatibility (temporary fix for WalletConnect)
+window.process = { env: {} };
+
+// Canvas Background Animation
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -154,7 +157,7 @@ const copyAddressButton = document.getElementById('copy-address');
 
 // Ethers.js Setup and Error Check
 if (typeof ethers === 'undefined') {
-    console.error("ethers.js is not loaded. Check the script tag in index.html.");
+    console.error("ethers.js is not loaded. Check the script tag in index.html or ensure js/ethers.umd.min.js (v6.13.5) is present.");
     walletAddressDisplay.textContent = "Error: ethers.js not loaded.";
     throw new Error("ethers.js not found");
 }
@@ -166,7 +169,7 @@ let contract;
 let walletConnectProvider;
 
 // WalletConnect Setup
-const projectId = '7044f2da2e31ce2e3765424a20c0c63b'; // Your provided project ID
+const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const monadTestnet = {
     chainId: 10143,
     name: 'Monad Testnet',
@@ -178,7 +181,6 @@ const monadTestnet = {
 // Connect Wallet
 async function connectWallet() {
     try {
-        // First, try MetaMask if available
         if (window.ethereum) {
             provider = new ethers.BrowserProvider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
@@ -186,19 +188,14 @@ async function connectWallet() {
             await window.ethereum.request({
                 method: 'wallet_addEthereumChain',
                 params: [{
-                    chainId: '0x27CF', // 10143 in hex
+                    chainId: '0x27CF',
                     chainName: 'Monad Testnet',
-                    nativeCurrency: {
-                        name: 'MON',
-                        symbol: 'MON',
-                        decimals: 18
-                    },
+                    nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
                     rpcUrls: ['https://testnet-rpc.monad.xyz/'],
                     blockExplorerUrls: ['https://testnet.monadexplorer.com/']
                 }]
             });
         } else {
-            // Fallback to WalletConnect
             walletConnectProvider = await window.EthereumProvider.init({
                 projectId: projectId,
                 chains: [10143],
@@ -310,7 +307,7 @@ async function handleTap() {
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
-        const sig = ethers.Signature.from(signature);
+        const sig = ethers.Signature.from(signature); // v6.13.5 compatible
         const tx = await contract.tapWithSignature(
             account,
             10000,
@@ -393,7 +390,7 @@ async function updateStats() {
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
 }
 
-// Particle Effects (Unchanged)
+// Particle Effects
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
     for (let i = 0; i < 10; i++) {
@@ -413,13 +410,13 @@ function spawnParticles() {
     }
 }
 
-// Smooth Update (Unchanged)
+// Smooth Update
 function smoothUpdate(element, newValue) {
     element.classList.add('updated');
     element.textContent = newValue;
 }
 
-// Event Listeners (Unchanged)
+// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     connectWalletButton.style.display = 'inline-block';
     connectWalletButton.addEventListener('click', connectWallet);
