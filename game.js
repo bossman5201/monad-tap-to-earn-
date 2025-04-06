@@ -179,15 +179,19 @@ async function connectWallet() {
         if (window.ethereum) {
             provider = new ethers.BrowserProvider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
-            account = (await provider.listAccounts())[0];
-            console.log('Account:', account, 'Type:', typeof account); // Debug account
+            const accounts = await provider.listAccounts();
+            account = accounts[0];
+            console.log('Raw Account:', account, 'Type:', typeof account); // Debug raw account
+            if (account && typeof account === 'object' && account.address) {
+                account = account.address; // Extract address if object
+            } else if (typeof account !== 'string') {
+                throw new Error('Invalid account format received from provider.');
+            }
+            console.log('Processed Account:', account, 'Type:', typeof account); // Debug processed account
             const network = await provider.getNetwork();
             console.log('Current Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
             if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
                 throw new Error('Please switch to Monad Testnet (Chain ID 10143) in MetaMask manually.');
-            }
-            if (typeof account !== 'string') {
-                throw new Error('Invalid account format received from provider.');
             }
         } else {
             walletConnectProvider = await window.EthereumProvider.init({
@@ -204,15 +208,19 @@ async function connectWallet() {
             });
             await walletConnectProvider.connect();
             provider = new ethers.BrowserProvider(walletConnectProvider);
-            account = (await provider.listAccounts())[0];
-            console.log('Account:', account, 'Type:', typeof account); // Debug account
+            const accounts = await provider.listAccounts();
+            account = accounts[0];
+            console.log('Raw Account:', account, 'Type:', typeof account); // Debug raw account
+            if (account && typeof account === 'object' && account.address) {
+                account = account.address; // Extract address if object
+            } else if (typeof account !== 'string') {
+                throw new Error('Invalid account format received from provider.');
+            }
+            console.log('Processed Account:', account, 'Type:', typeof account); // Debug processed account
             const network = await provider.getNetwork();
             console.log('WalletConnect Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
             if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
                 throw new Error('Please connect WalletConnect to Monad Testnet (Chain ID 10143).');
-            }
-            if (typeof account !== 'string') {
-                throw new Error('Invalid account format received from provider.');
             }
         }
 
