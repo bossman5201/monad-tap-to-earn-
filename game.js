@@ -1,4 +1,4 @@
-// Mock process for browser compatibility (temporary fix for WalletConnect)
+// Mock process for browser compatibility (fix for WalletConnect)
 window.process = { env: {} };
 
 // Canvas Background Animation
@@ -157,7 +157,7 @@ const copyAddressButton = document.getElementById('copy-address');
 
 // Ethers.js Setup and Error Check
 if (typeof ethers === 'undefined') {
-    console.error("ethers.js is not loaded. Check the script tag in index.html or ensure js/ethers.umd.min.js (v6.13.5) is present.");
+    console.error("ethers.js is not loaded. Check the script tag in index.html or ensure ethers.umd.min.js (v6.13.5) is present at the root.");
     walletAddressDisplay.textContent = "Error: ethers.js not loaded.";
     throw new Error("ethers.js not found");
 }
@@ -307,7 +307,7 @@ async function handleTap() {
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
-        const sig = ethers.Signature.from(signature); // v6.13.5 compatible
+        const sig = ethers.Signature.from(signature);
         const tx = await contract.tapWithSignature(
             account,
             10000,
