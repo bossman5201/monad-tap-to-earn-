@@ -170,7 +170,7 @@ let walletConnectProvider;
 
 // WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
-const EXPECTED_CHAIN_ID = BigInt(10143); // Use BigInt for consistent comparison
+const EXPECTED_CHAIN_ID = 10143; // Use Number for simplicity
 
 // Connect Wallet
 async function connectWallet() {
@@ -180,10 +180,14 @@ async function connectWallet() {
             provider = new ethers.BrowserProvider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             account = (await provider.listAccounts())[0];
+            console.log('Account:', account, 'Type:', typeof account); // Debug account
             const network = await provider.getNetwork();
             console.log('Current Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
-            if (network.chainId !== EXPECTED_CHAIN_ID) {
+            if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
                 throw new Error('Please switch to Monad Testnet (Chain ID 10143) in MetaMask manually.');
+            }
+            if (typeof account !== 'string') {
+                throw new Error('Invalid account format received from provider.');
             }
         } else {
             walletConnectProvider = await window.EthereumProvider.init({
@@ -201,10 +205,14 @@ async function connectWallet() {
             await walletConnectProvider.connect();
             provider = new ethers.BrowserProvider(walletConnectProvider);
             account = (await provider.listAccounts())[0];
+            console.log('Account:', account, 'Type:', typeof account); // Debug account
             const network = await provider.getNetwork();
             console.log('WalletConnect Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
-            if (network.chainId !== EXPECTED_CHAIN_ID) {
+            if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
                 throw new Error('Please connect WalletConnect to Monad Testnet (Chain ID 10143).');
+            }
+            if (typeof account !== 'string') {
+                throw new Error('Invalid account format received from provider.');
             }
         }
 
