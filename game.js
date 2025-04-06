@@ -171,7 +171,7 @@ let walletConnectProvider;
 // WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const monadTestnet = {
-    chainId: 10143, // Explicitly set to 10143 (decimal)
+    chainId: 10143, // Expected Chain ID
     name: 'Monad Testnet',
     currency: 'MON',
     rpcUrl: 'https://testnet-rpc.monad.xyz/',
@@ -189,29 +189,7 @@ async function connectWallet() {
             const network = await provider.getNetwork();
             console.log('Current Network:', network);
             if (network.chainId !== 10143) {
-                console.log('Switching to Monad Testnet with Chain ID 10143...');
-                try {
-                    await window.ethereum.request({
-                        method: 'wallet_switchEthereumChain',
-                        params: [{ chainId: '0x27CF' }] // 10143 in hex
-                    });
-                } catch (switchError) {
-                    if (switchError.code === 4902) { // Network not added
-                        console.log('Network not added, adding Monad Testnet...');
-                        await window.ethereum.request({
-                            method: 'wallet_addEthereumChain',
-                            params: [{
-                                chainId: '0x27CF',
-                                chainName: 'Monad Testnet',
-                                nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                                rpcUrls: ['https://testnet-rpc.monad.xyz/'],
-                                blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-                            }]
-                        });
-                    } else {
-                        throw switchError;
-                    }
-                }
+                throw new Error('Please switch to Monad Testnet (Chain ID 10143) in MetaMask manually.');
             }
         } else {
             walletConnectProvider = await window.EthereumProvider.init({
@@ -232,7 +210,7 @@ async function connectWallet() {
             const network = await provider.getNetwork();
             console.log('WalletConnect Network:', network);
             if (network.chainId !== 10143) {
-                throw new Error('WalletConnect connected to wrong network');
+                throw new Error('Please connect WalletConnect to Monad Testnet (Chain ID 10143).');
             }
         }
 
@@ -248,9 +226,10 @@ async function connectWallet() {
         updateStats();
     } catch (error) {
         console.error('Wallet connection failed:', error);
-        alert('Failed to connect wallet: ' + (error.message || 'Unknown error'));
+        alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
+        walletAddressDisplay.textContent = 'Error: Wrong network or connection failed.';
     }
 }
 
