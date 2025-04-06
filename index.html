@@ -9,8 +9,8 @@
     <link rel="stylesheet" href="styles.css">
     <!-- WalletConnect Ethereum Provider -->
     <script src="https://unpkg.com/@walletconnect/ethereum-provider@2.14.0/dist/index.umd.js"></script>
-    <!-- Ethers.js (ensure compatibility with game.js) -->
-    <script src="https://unpkg.com/ethers@6.14.0/dist/ethers.umd.min.js" type="application/javascript" id="ethers-script"></script>
+    <!-- Offline ethers.js v6.13.5 -->
+    <script src="js/ethers.umd.min.js" type="application/javascript" id="ethers-script"></script>
 </head>
 <body>
     <canvas id="canvas"></canvas>
@@ -47,6 +47,5 @@
     </div>
 
     <script src="game.js" defer></script>
-    <!-- Ensure other scripts are loaded after ethers.js if they depend on it -->
 </body>
 </html>
