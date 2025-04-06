@@ -171,7 +171,7 @@ let walletConnectProvider;
 // WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const monadTestnet = {
-    chainId: 10143,
+    chainId: 10143, // Explicitly set to 10143 (decimal)
     name: 'Monad Testnet',
     currency: 'MON',
     rpcUrl: 'https://testnet-rpc.monad.xyz/',
@@ -181,24 +181,30 @@ const monadTestnet = {
 // Connect Wallet
 async function connectWallet() {
     try {
+        console.log('Attempting to connect wallet...');
         if (window.ethereum) {
             provider = new ethers.BrowserProvider(window.ethereum);
             await provider.send("eth_requestAccounts", []);
             account = (await provider.listAccounts())[0];
-            await window.ethereum.request({
-                method: 'wallet_addEthereumChain',
-                params: [{
-                    chainId: '0x27CF',
-                    chainName: 'Monad Testnet',
-                    nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
-                    rpcUrls: ['https://testnet-rpc.monad.xyz/'],
-                    blockExplorerUrls: ['https://testnet.monadexplorer.com/']
-                }]
-            });
+            const chainId = await provider.getNetwork().then(net => net.chainId);
+            console.log('Current Chain ID:', chainId);
+            if (chainId !== 10143) {
+                console.log('Adding Monad Testnet with Chain ID 10143...');
+                await window.ethereum.request({
+                    method: 'wallet_addEthereumChain',
+                    params: [{
+                        chainId: '0x27CF', // 10143 in hex
+                        chainName: 'Monad Testnet',
+                        nativeCurrency: { name: 'MON', symbol: 'MON', decimals: 18 },
+                        rpcUrls: ['https://testnet-rpc.monad.xyz/'],
+                        blockExplorerUrls: ['https://testnet.monadexplorer.com/']
+                    }]
+                });
+            }
         } else {
             walletConnectProvider = await window.EthereumProvider.init({
                 projectId: projectId,
-                chains: [10143],
+                chains: [10143], // Ensure WalletConnect targets 10143
                 optionalChains: [],
                 showQrModal: true,
                 metadata: {
