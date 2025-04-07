@@ -1,5 +1,5 @@
 // Mock process for browser compatibility (fix for WalletConnect)
-window.process = { env: { NODE_ENV: 'browser' } };
+window.process = { env: { NODE_ENV: 'browser' } }; // Restored from original
 
 // Canvas Background Animation
 const canvas = document.getElementById('canvas');
@@ -155,9 +155,9 @@ const backToGameButton = document.getElementById('back-to-game');
 const donateAddress = document.getElementById('donate-address');
 const copyAddressButton = document.getElementById('copy-address');
 
-// Ethers.js Setup
+// Ethers.js Setup and Error Check
 if (typeof ethers === 'undefined') {
-    console.error("ethers.js is not loaded. Check index.html script tags.");
+    console.error("ethers.js is not loaded. Check the script tag in index.html or ensure ethers.umd.min.js (v6.13.5) is present at the root.");
     walletAddressDisplay.textContent = "Error: ethers.js not loaded.";
     throw new Error("ethers.js not found");
 }
@@ -168,7 +168,7 @@ let account;
 let contract;
 let walletConnectProvider;
 
-// Contract Details
+// WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const EXPECTED_CHAIN_ID = 10143;
 const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
@@ -182,39 +182,42 @@ const ABI = [
     {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
 ];
 
-// Initialize Web3
+// Initialize Web3 Connection
 async function initializeWeb3() {
-    try {
-        if (!provider) {
-            if (window.ethereum) {
-                provider = new ethers.BrowserProvider(window.ethereum);
-            } else {
-                walletConnectProvider = await window.EthereumProvider.init({
-                    projectId,
-                    chains: [EXPECTED_CHAIN_ID],
-                    showQrModal: true,
-                    metadata: { name: 'Rocket Fuel Miner', description: 'Mine rocket fuel', url: window.location.origin, icons: ['https://avatars.githubusercontent.com/u/37784886'] }
-                });
-                await walletConnectProvider.connect();
-                provider = new ethers.BrowserProvider(walletConnectProvider);
-            }
-            const network = await provider.getNetwork();
-            if (network.chainId !== EXPECTED_CHAIN_ID) throw new Error(`Wrong network. Expected ${EXPECTED_CHAIN_ID}, got ${network.chainId}`);
-            signer = await provider.getSigner();
-            contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
-            console.log('Web3 initialized:', { provider, signer, contract });
+    if (!provider) {
+        if (window.ethereum) {
+            provider = new ethers.BrowserProvider(window.ethereum);
+        } else {
+            walletConnectProvider = await window.EthereumProvider.init({
+                projectId: projectId,
+                chains: [EXPECTED_CHAIN_ID],
+                optionalChains: [],
+                showQrModal: true,
+                metadata: {
+                    name: 'Rocket Fuel Miner',
+                    description: 'A fun game to mine rocket fuel on the Monad Testnet',
+                    url: window.location.origin,
+                    icons: ['https://avatars.githubusercontent.com/u/37784886']
+                }
+            });
+            await walletConnectProvider.connect();
+            provider = new ethers.BrowserProvider(walletConnectProvider);
         }
-        return { provider, signer, contract };
-    } catch (error) {
-        console.error('Web3 initialization failed:', error);
-        throw error;
+        const network = await provider.getNetwork();
+        if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
+            throw new Error('Please switch to Monad Testnet (Chain ID 10143).');
+        }
+        signer = await provider.getSigner();
+        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        console.log('Web3 initialized:', { provider, signer, contract });
     }
+    return { provider, signer, contract };
 }
 
 // Connect Wallet
 async function connectWallet() {
     try {
-        console.log('Connecting wallet...');
+        console.log('Attempting to connect wallet...');
         const { provider: p, signer: s, contract: c } = await initializeWeb3();
         provider = p;
         signer = s;
@@ -222,8 +225,14 @@ async function connectWallet() {
 
         await provider.send("eth_requestAccounts", []);
         const accounts = await provider.listAccounts();
-        account = accounts[0].address || accounts[0];
-        console.log('Account connected:', account);
+        account = accounts[0];
+        console.log('Raw Account:', account, 'Type:', typeof account);
+        if (account && typeof account === 'object' && account.address) {
+            account = account.address;
+        } else if (typeof account !== 'string') {
+            throw new Error('Invalid account format received from provider.');
+        }
+        console.log('Processed Account:', account, 'Type:', typeof account);
 
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
@@ -231,27 +240,27 @@ async function connectWallet() {
         await updateMonBalance();
         await updateStats();
         await authorizeTaps();
-        if (contract) {
-            tapButton.disabled = false;
-            tapDisabledMessage.style.display = 'none';
-            console.log('Wallet connected, contract ready:', contract);
-            tapButton.addEventListener('click', handleTap); // Attach listener here
-        } else {
-            throw new Error('Contract not initialized');
-        }
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
+        console.log('Connection complete, contract state:', { contract });
+        // Attach tap listener only after contract is confirmed
+        tapButton.addEventListener('click', handleTap);
     } catch (error) {
-        console.error('Wallet connection error:', error);
-        alert('Connection failed: ' + error.message);
+        console.error('Wallet connection failed:', error);
+        alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
-        walletAddressDisplay.textContent = 'Error: Connection failed.';
+        walletAddressDisplay.textContent = 'Error: Wrong network or connection failed.';
     }
 }
 
 // Disconnect Wallet
 async function disconnectWallet() {
     try {
-        if (walletConnectProvider) await walletConnectProvider.disconnect();
+        if (walletConnectProvider) {
+            await walletConnectProvider.disconnect();
+            walletConnectProvider = null;
+        }
         provider = null;
         signer = null;
         account = null;
@@ -263,7 +272,7 @@ async function disconnectWallet() {
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
     } catch (error) {
-        console.error('Disconnect error:', error);
+        console.error('Failed to disconnect wallet:', error);
     }
 }
 
@@ -276,65 +285,33 @@ async function updateMonBalance() {
     }
 }
 
-// Authorize Taps
-async function authorizeTaps() {
-    if (!contract) {
-        console.error('Contract not available for authorization');
-        return;
-    }
-    try {
-        const tapCount = 10000;
-        const domain = { name: 'RocketFuelMiner', version: '1', chainId: EXPECTED_CHAIN_ID, verifyingContract: CONTRACT_ADDRESS };
-        const types = { TapAuthorization: [{ name: 'user', type: 'address' }, { name: 'tapCount', type: 'uint256' }, { name: 'nonce', type: 'uint256' }] };
-        const value = { user: account, tapCount, nonce };
-        signature = await signer.signTypedData(domain, types, value);
-        console.log('Authorization signature generated:', signature);
-
-        const tx = await contract.setAuthorizedTaps(account, tapCount);
-        console.log('Authorization tx sent:', tx.hash);
-        await tx.wait();
-        console.log('Authorization tx confirmed:', tx.hash);
-        authorizedTaps = tapCount;
-        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        authorizeMoreTapsButton.style.display = 'none';
-        nonce++;
-        await updateStats();
-    } catch (error) {
-        console.error('Authorization failed:', error);
-        tapDisabledMessage.textContent = 'Authorization failed—try again!';
-        tapDisabledMessage.style.display = 'block';
-    }
-}
-
 // Tap Handler
 async function handleTap() {
-    if (!contract || authorizedTaps <= 0) {
-        console.log('Tap disabled:', { contract, authorizedTaps });
+    if (!provider || !signer || !contract || !signature || authorizedTaps <= 0) {
+        console.log('Tap disabled:', { provider, signer, contract, signature, authorizedTaps });
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
-        if (authorizedTaps <= 0) tapDisabledMessage.textContent = 'No taps remaining—authorize more!';
+        if (authorizedTaps <= 0) {
+            tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
+            authorizeMoreTapsButton.style.display = 'inline-block';
+        }
         return;
     }
-    try {
-        console.log('Initiating tap:', { account, nonce, authorizedTaps });
-        // Generate new signature for each tap
-        const domain = { name: 'RocketFuelMiner', version: '1', chainId: EXPECTED_CHAIN_ID, verifyingContract: CONTRACT_ADDRESS };
-        const types = { TapAuthorization: [{ name: 'user', type: 'address' }, { name: 'tapCount', type: 'uint256' }, { name: 'nonce', type: 'uint256' }] };
-        const value = { user: account, tapCount: 1, nonce };
-        const newSignature = await signer.signTypedData(domain, types, value);
-        const sig = ethers.Signature.from(newSignature);
 
-        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, sig.v, sig.r, sig.s).catch(err => {
+    console.log('Attempting tap with contract:', { account, nonce, signature, contract });
+    try {
+        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, 0, '0x', '0x').catch(err => {
             console.error('Gas estimation failed:', err);
             return null;
         });
         const gasPrice = await provider.getGasPrice();
         const gasCost = gasEstimate ? ethers.formatEther(gasEstimate * gasPrice) : 'N/A';
-        console.log('Gas details:', { gasEstimate, gasPrice, gasCost });
+        console.log('Gas Estimate:', gasEstimate, 'Gas Price:', gasPrice.toString(), 'Gas Cost:', gasCost);
 
         if (gasEstimate && parseFloat(monBalance) < parseFloat(gasCost)) {
-            tapDisabledMessage.textContent = `Insufficient MON (${gasCost} required)`;
+            tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
             tapDisabledMessage.style.display = 'block';
+            tapButton.disabled = true;
             return;
         }
 
@@ -346,10 +323,20 @@ async function handleTap() {
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
-        const tx = await contract.tapWithSignature(account, 1, nonce, sig.v, sig.r, sig.s, { gasLimit: gasEstimate || 100000 });
-        console.log('Tap tx sent:', tx.hash);
+        const sig = ethers.Signature.from(signature); // Use pre-approved signature
+        console.log('Sending transaction with:', { account, tapCount: 1, nonce, v: sig.v, r: sig.r, s: sig.s });
+        const tx = await contract.tapWithSignature(
+            account,
+            1,
+            nonce,
+            sig.v,
+            sig.r,
+            sig.s,
+            { gasLimit: gasEstimate || 100000 }
+        );
+        console.log('Transaction sent, waiting for confirmation:', tx.hash);
         await tx.wait();
-        console.log('Tap tx confirmed:', tx.hash);
+        console.log('Transaction confirmed:', tx.hash);
         nonce++;
         await updateMonBalance();
         await updateStats();
@@ -361,14 +348,63 @@ async function handleTap() {
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapDisabledMessage.textContent = 'Tap failed—check logs!';
+        tapDisabledMessage.textContent = 'Tap failed—check network, gas, or signature!';
+        tapDisabledMessage.style.display = 'block';
+    }
+}
+
+// Authorize Taps
+async function authorizeTaps() {
+    if (!provider || !signer || !contract) {
+        console.error('Authorization failed: Provider, signer, or contract not initialized', { provider, signer, contract });
+        return;
+    }
+
+    const tapCount = 10000;
+    const domain = {
+        name: "RocketFuelMiner",
+        version: "1",
+        chainId: EXPECTED_CHAIN_ID,
+        verifyingContract: CONTRACT_ADDRESS
+    };
+    const types = {
+        TapAuthorization: [
+            { name: "user", type: "address" },
+            { name: "tapCount", type: "uint256" },
+            { name: "nonce", type: "uint256" }
+        ]
+    };
+    const value = {
+        user: account,
+        tapCount: tapCount,
+        nonce: nonce
+    };
+
+    try {
+        signature = await signer.signTypedData(domain, types, value);
+        console.log('Signature generated:', signature);
+        const tx = await contract.setAuthorizedTaps(account, tapCount);
+        console.log('Authorization transaction sent:', tx.hash);
+        await tx.wait();
+        console.log('Authorization transaction confirmed:', tx.hash);
+        authorizedTaps = tapCount;
+        smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
+        authorizeMoreTapsButton.style.display = 'none';
+        nonce++;
+        await updateStats();
+    } catch (error) {
+        console.error('Authorization failed:', error);
+        tapButton.disabled = true;
+        tapDisabledMessage.textContent = 'Authorization failed—please try again!';
         tapDisabledMessage.style.display = 'block';
     }
 }
 
 // Stats Update
 async function updateStats() {
-    if (contract && account) {
+    if (provider && signer && account && contract) {
         try {
             totalFuel = (await contract.totalFuel(account)).toString();
             totalTaps = (await contract.totalTaps(account)).toString();
@@ -376,7 +412,7 @@ async function updateStats() {
             nonce = Number(await contract.nonces(account));
             console.log('Stats updated:', { totalFuel, totalTaps, authorizedTaps, nonce });
         } catch (error) {
-            console.error('Stats fetch failed:', error);
+            console.error('Failed to fetch stats:', error);
         }
     }
     smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
@@ -415,20 +451,29 @@ function smoothUpdate(element, newValue) {
 // Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     connectWalletButton.style.display = 'inline-block';
-    connectWalletButton.addEventListener('click', connectWallet);
+    connectWalletButton.addEventListener('click', async () => {
+        await connectWallet();
+    });
     disconnectWalletButton.addEventListener('click', disconnectWallet);
     authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
-    donateButton.addEventListener('click', () => donateModal.style.display = 'flex');
-    closeDonate.addEventListener('click', () => donateModal.style.display = 'none');
-    backToGameButton.addEventListener('click', () => donateModal.style.display = 'none');
+    donateButton.addEventListener('click', () => {
+        donateModal.style.display = 'flex';
+    });
+    closeDonate.addEventListener('click', () => {
+        donateModal.style.display = 'none';
+    });
+    backToGameButton.addEventListener('click', () => {
+        donateModal.style.display = 'none';
+    });
     copyAddressButton.addEventListener('click', () => {
-        navigator.clipboard.writeText(donateAddress.textContent).then(() => {
+        const address = donateAddress.textContent;
+        navigator.clipboard.writeText(address).then(() => {
             copyAddressButton.textContent = 'Copied!';
             setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
         });
     });
 
-    const savedState = JSON.parse(localStorage.getItem('gameState') || '{}');
+    const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
     totalFuel = savedState.totalFuel || 0;
     totalTaps = savedState.totalTaps || 0;
     invitesSent = savedState.invitesSent || 0;
@@ -438,5 +483,5 @@ document.addEventListener('DOMContentLoaded', () => {
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
     smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
     smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-    updateStats().catch(console.error);
+    updateStats().catch(err => console.error('Initial stats update failed:', err));
 });
