@@ -182,68 +182,58 @@ const ABI = [
     {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
 ];
 
+// Initialize Web3 Connection
+async function initializeWeb3() {
+    if (window.ethereum) {
+        provider = new ethers.BrowserProvider(window.ethereum);
+    } else {
+        walletConnectProvider = await window.EthereumProvider.init({
+            projectId: projectId,
+            chains: [EXPECTED_CHAIN_ID],
+            optionalChains: [],
+            showQrModal: true,
+            metadata: {
+                name: 'Rocket Fuel Miner',
+                description: 'A fun game to mine rocket fuel on the Monad Testnet',
+                url: window.location.origin,
+                icons: ['https://avatars.githubusercontent.com/u/37784886']
+            }
+        });
+        await walletConnectProvider.connect();
+        provider = new ethers.BrowserProvider(walletConnectProvider);
+    }
+    const network = await provider.getNetwork();
+    if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
+        throw new Error('Please switch to Monad Testnet (Chain ID 10143).');
+    }
+    signer = await provider.getSigner();
+    contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+    console.log('Web3 initialized:', { provider, signer, contract });
+}
+
 // Connect Wallet
 async function connectWallet() {
     try {
         console.log('Attempting to connect wallet...');
-        if (window.ethereum) {
-            provider = new ethers.BrowserProvider(window.ethereum);
-            await provider.send("eth_requestAccounts", []);
-            const accounts = await provider.listAccounts();
-            account = accounts[0];
-            console.log('Raw Account:', account, 'Type:', typeof account);
-            if (account && typeof account === 'object' && account.address) {
-                account = account.address;
-            } else if (typeof account !== 'string') {
-                throw new Error('Invalid account format received from provider.');
-            }
-            console.log('Processed Account:', account, 'Type:', typeof account);
-            const network = await provider.getNetwork();
-            console.log('Current Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
-            if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
-                throw new Error('Please switch to Monad Testnet (Chain ID 10143) in MetaMask manually.');
-            }
-        } else {
-            walletConnectProvider = await window.EthereumProvider.init({
-                projectId: projectId,
-                chains: [10143],
-                optionalChains: [],
-                showQrModal: true,
-                metadata: {
-                    name: 'Rocket Fuel Miner',
-                    description: 'A fun game to mine rocket fuel on the Monad Testnet',
-                    url: window.location.origin,
-                    icons: ['https://avatars.githubusercontent.com/u/37784886']
-                }
-            });
-            await walletConnectProvider.connect();
-            provider = new ethers.BrowserProvider(walletConnectProvider);
-            const accounts = await provider.listAccounts();
-            account = accounts[0];
-            console.log('Raw Account:', account, 'Type:', typeof account);
-            if (account && typeof account === 'object' && account.address) {
-                account = account.address;
-            } else if (typeof account !== 'string') {
-                throw new Error('Invalid account format received from provider.');
-            }
-            console.log('Processed Account:', account, 'Type:', typeof account);
-            const network = await provider.getNetwork();
-            console.log('WalletConnect Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
-            if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
-                throw new Error('Please connect WalletConnect to Monad Testnet (Chain ID 10143).');
-            }
+        await initializeWeb3();
+        await provider.send("eth_requestAccounts", []);
+        const accounts = await provider.listAccounts();
+        account = accounts[0];
+        console.log('Raw Account:', account, 'Type:', typeof account);
+        if (account && typeof account === 'object' && account.address) {
+            account = account.address;
+        } else if (typeof account !== 'string') {
+            throw new Error('Invalid account format received from provider.');
         }
-
-        signer = await provider.getSigner();
-        contract = new ethers.Contract(CONTRACT_ADDRESS, ABI, signer);
+        console.log('Processed Account:', account, 'Type:', typeof account);
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
         await updateMonBalance();
-        await updateStats(); // Sync state on connect
-        await authorizeTaps(); // Automatically authorize taps on connect
-        tapButton.disabled = false; // Ensure tap button is enabled
-        tapDisabledMessage.style.display = 'none'; // Hide connect message
+        await updateStats();
+        await authorizeTaps();
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
@@ -264,7 +254,7 @@ async function disconnectWallet() {
         signer = null;
         account = null;
         contract = null;
-        signature = null; // Reset signature on disconnect
+        signature = null;
         walletAddressDisplay.textContent = '';
         connectWalletButton.style.display = 'inline-block';
         disconnectWalletButton.style.display = 'none';
@@ -297,7 +287,7 @@ async function handleTap() {
         return;
     }
 
-    console.log('Attempting tap:', { account, nonce, signature });
+    console.log('Attempting tap:', { account, nonce, signature, contract });
     const gasEstimate = await contract.estimateGas.tapWithSignature(account, 10000, nonce, 0, '0x', '0x').catch(err => {
         console.error('Gas estimation failed:', err);
         return null;
@@ -331,14 +321,14 @@ async function handleTap() {
             sig.v,
             sig.r,
             sig.s,
-            { gasLimit: gasEstimate || 100000 } // Default gas limit if estimation fails
+            { gasLimit: gasEstimate || 100000 }
         );
         console.log('Transaction sent, waiting for confirmation:', tx.hash);
         await tx.wait();
         console.log('Transaction confirmed:', tx.hash);
         nonce++;
         await updateMonBalance();
-        await updateStats(); // Sync with contract after successful tap
+        await updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
         totalFuel--;
@@ -388,11 +378,11 @@ async function authorizeTaps() {
         console.log('Authorization transaction confirmed:', tx.hash);
         authorizedTaps = tapCount;
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapButton.disabled = false; // Ensure tap button is enabled after authorization
-        tapDisabledMessage.style.display = 'none'; // Hide connect message
+        tapButton.disabled = false;
+        tapDisabledMessage.style.display = 'none';
         authorizeMoreTapsButton.style.display = 'none';
-        nonce++; // Increment nonce after successful authorization
-        await updateStats(); // Sync with contract after authorization
+        nonce++;
+        await updateStats();
     } catch (error) {
         console.error('Authorization failed:', error);
         tapButton.disabled = true;
@@ -469,7 +459,16 @@ document.addEventListener('DOMContentLoaded', async () => {
             setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
         });
     });
-    tapButton.addEventListener('click', handleTap);
+
+    // Attach tap event listener only after connection
+    let isConnected = false;
+    const attachTapListener = () => {
+        if (!isConnected && account) {
+            tapButton.addEventListener('click', handleTap);
+            isConnected = true;
+        }
+    };
+    connectWallet().then(attachTapListener).catch(err => console.error('Connection setup failed:', err));
 
     const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
     totalFuel = savedState.totalFuel || 0;
@@ -481,5 +480,5 @@ document.addEventListener('DOMContentLoaded', async () => {
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
     smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
     smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-    await updateStats(); // Sync with contract on load
+    await updateStats();
 });
