@@ -171,6 +171,16 @@ let walletConnectProvider;
 // WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const EXPECTED_CHAIN_ID = 10143; // Use Number for simplicity
+const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
+const ABI = [
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"authorizedTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
+];
 
 // Connect Wallet
 async function connectWallet() {
@@ -181,13 +191,13 @@ async function connectWallet() {
             await provider.send("eth_requestAccounts", []);
             const accounts = await provider.listAccounts();
             account = accounts[0];
-            console.log('Raw Account:', account, 'Type:', typeof account); // Debug raw account
+            console.log('Raw Account:', account, 'Type:', typeof account);
             if (account && typeof account === 'object' && account.address) {
-                account = account.address; // Extract address if object
+                account = account.address;
             } else if (typeof account !== 'string') {
                 throw new Error('Invalid account format received from provider.');
             }
-            console.log('Processed Account:', account, 'Type:', typeof account); // Debug processed account
+            console.log('Processed Account:', account, 'Type:', typeof account);
             const network = await provider.getNetwork();
             console.log('Current Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
             if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
@@ -196,7 +206,7 @@ async function connectWallet() {
         } else {
             walletConnectProvider = await window.EthereumProvider.init({
                 projectId: projectId,
-                chains: [10143], // Enforce 10143
+                chains: [10143],
                 optionalChains: [],
                 showQrModal: true,
                 metadata: {
@@ -210,13 +220,13 @@ async function connectWallet() {
             provider = new ethers.BrowserProvider(walletConnectProvider);
             const accounts = await provider.listAccounts();
             account = accounts[0];
-            console.log('Raw Account:', account, 'Type:', typeof account); // Debug raw account
+            console.log('Raw Account:', account, 'Type:', typeof account);
             if (account && typeof account === 'object' && account.address) {
-                account = account.address; // Extract address if object
+                account = account.address;
             } else if (typeof account !== 'string') {
                 throw new Error('Invalid account format received from provider.');
             }
-            console.log('Processed Account:', account, 'Type:', typeof account); // Debug processed account
+            console.log('Processed Account:', account, 'Type:', typeof account);
             const network = await provider.getNetwork();
             console.log('WalletConnect Network:', network, 'Chain ID Type:', typeof network.chainId, 'Chain ID Value:', network.chainId);
             if (Number(network.chainId) !== EXPECTED_CHAIN_ID) {
@@ -230,10 +240,9 @@ async function connectWallet() {
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
         await updateMonBalance();
-        await authorizeTaps();
+        await updateStats(); // Sync state on connect
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
-        updateStats();
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
@@ -274,36 +283,28 @@ async function updateMonBalance() {
 }
 
 // Tap Handler
-const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
-const ABI = [
-    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"authorizedTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
-];
-
 async function handleTap() {
-    if (!provider || !signer || !contract || !signature) {
+    if (!provider || !signer || !contract || !signature || authorizedTaps <= 0) {
+        console.log('Tap disabled:', { provider, signer, contract, signature, authorizedTaps });
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
+        if (authorizedTaps <= 0) {
+            tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
+            authorizeMoreTapsButton.style.display = 'inline-block';
+        }
         return;
     }
 
-    if (authorizedTaps <= 0) {
-        tapDisabledMessage.textContent = 'No authorized taps remaining! Please authorize more taps.';
-        tapDisabledMessage.style.display = 'block';
-        tapButton.disabled = true;
-        authorizeMoreTapsButton.style.display = 'inline-block';
-        return;
-    }
-
-    const gasEstimate = await contract.estimateGas.tapWithSignature(account, 10000, nonce, 0, '0x', '0x');
+    console.log('Attempting tap:', { account, nonce, signature });
+    const gasEstimate = await contract.estimateGas.tapWithSignature(account, 10000, nonce, 0, '0x', '0x').catch(err => {
+        console.error('Gas estimation failed:', err);
+        return null;
+    });
     const gasPrice = await provider.getGasPrice();
-    const gasCost = ethers.formatEther(gasEstimate * gasPrice);
-    if (parseFloat(monBalance) < parseFloat(gasCost)) {
+    const gasCost = gasEstimate ? ethers.formatEther(gasEstimate * gasPrice) : 'N/A';
+    console.log('Gas Estimate:', gasEstimate, 'Gas Price:', gasPrice.toString(), 'Gas Cost:', gasCost);
+
+    if (gasEstimate && parseFloat(monBalance) < parseFloat(gasCost)) {
         tapDisabledMessage.textContent = `Insufficient MON for gas fees (${gasCost} MON required). Please add funds to your wallet.`;
         tapDisabledMessage.style.display = 'block';
         tapButton.disabled = true;
@@ -320,15 +321,19 @@ async function handleTap() {
         spawnParticles();
 
         const sig = ethers.Signature.from(signature);
+        console.log('Sending transaction with:', { account, tapCount: 10000, nonce, v: sig.v, r: sig.r, s: sig.s });
         const tx = await contract.tapWithSignature(
             account,
             10000,
             nonce,
             sig.v,
             sig.r,
-            sig.s
+            sig.s,
+            { gasLimit: gasEstimate || 100000 } // Default gas limit if estimation fails
         );
+        console.log('Transaction sent, waiting for confirmation:', tx.hash);
         await tx.wait();
+        console.log('Transaction confirmed:', tx.hash);
         nonce++;
         await updateMonBalance();
     } catch (error) {
@@ -339,18 +344,23 @@ async function handleTap() {
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapDisabledMessage.textContent = 'Tap failed—check network or gas!';
+        tapDisabledMessage.textContent = 'Tap failed—check network, gas, or signature!';
         tapDisabledMessage.style.display = 'block';
     }
 }
 
 // Authorize Taps
 async function authorizeTaps() {
+    if (!provider || !signer || !contract) {
+        console.error('Authorization failed: Provider, signer, or contract not initialized');
+        return;
+    }
+
     const tapCount = 10000;
     const domain = {
         name: "RocketFuelMiner",
         version: "1",
-        chainId: 10143,
+        chainId: EXPECTED_CHAIN_ID,
         verifyingContract: CONTRACT_ADDRESS
     };
     const types = {
@@ -368,13 +378,17 @@ async function authorizeTaps() {
 
     try {
         signature = await signer.signTypedData(domain, types, value);
+        console.log('Signature generated:', signature);
         const tx = await contract.setAuthorizedTaps(account, tapCount);
+        console.log('Authorization transaction sent:', tx.hash);
         await tx.wait();
+        console.log('Authorization transaction confirmed:', tx.hash);
         authorizedTaps = tapCount;
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         authorizeMoreTapsButton.style.display = 'none';
+        nonce++; // Increment nonce after successful authorization
     } catch (error) {
         console.error('Authorization failed:', error);
         tapButton.disabled = true;
@@ -391,6 +405,7 @@ async function updateStats() {
             totalTaps = (await contract.totalTaps(account)).toString();
             authorizedTaps = Number(await contract.authorizedTaps(account));
             nonce = Number(await contract.nonces(account));
+            console.log('Stats updated:', { totalFuel, totalTaps, authorizedTaps, nonce });
         } catch (error) {
             console.error('Failed to fetch stats:', error);
         }
@@ -399,7 +414,7 @@ async function updateStats() {
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
     smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
     smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-    localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent }));
+    localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent, authorizedTaps, nonce }));
 }
 
 // Particle Effects
@@ -429,7 +444,7 @@ function smoothUpdate(element, newValue) {
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     connectWalletButton.style.display = 'inline-block';
     connectWalletButton.addEventListener('click', connectWallet);
     disconnectWalletButton.addEventListener('click', disconnectWallet);
@@ -456,7 +471,11 @@ document.addEventListener('DOMContentLoaded', () => {
     totalFuel = savedState.totalFuel || 0;
     totalTaps = savedState.totalTaps || 0;
     invitesSent = savedState.invitesSent || 0;
+    authorizedTaps = savedState.authorizedTaps || 0; // Load persisted authorizedTaps
+    nonce = savedState.nonce || 0;
     smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
     smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
+    smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
+    await updateStats(); // Sync with contract on load
 });
