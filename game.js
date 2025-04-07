@@ -132,7 +132,7 @@ let totalFuel = 0;
 let totalTaps = 0;
 let invitesSent = 0;
 let authorizedTaps = 0;
-let signature = null;
+let signature = null; // Moved to global scope
 let nonce = 0;
 let monBalance = 0;
 
@@ -241,8 +241,9 @@ async function connectWallet() {
         disconnectWalletButton.style.display = 'inline-block';
         await updateMonBalance();
         await updateStats(); // Sync state on connect
-        tapButton.disabled = false;
-        tapDisabledMessage.style.display = 'none';
+        await authorizeTaps(); // Automatically authorize taps on connect
+        tapButton.disabled = false; // Ensure tap button is enabled
+        tapDisabledMessage.style.display = 'none'; // Hide connect message
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
@@ -263,6 +264,7 @@ async function disconnectWallet() {
         signer = null;
         account = null;
         contract = null;
+        signature = null; // Reset signature on disconnect
         walletAddressDisplay.textContent = '';
         connectWalletButton.style.display = 'inline-block';
         disconnectWalletButton.style.display = 'none';
@@ -336,6 +338,7 @@ async function handleTap() {
         console.log('Transaction confirmed:', tx.hash);
         nonce++;
         await updateMonBalance();
+        await updateStats(); // Sync with contract after successful tap
     } catch (error) {
         console.error('Tap failed:', error);
         totalFuel--;
@@ -385,10 +388,11 @@ async function authorizeTaps() {
         console.log('Authorization transaction confirmed:', tx.hash);
         authorizedTaps = tapCount;
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-        tapButton.disabled = false;
-        tapDisabledMessage.style.display = 'none';
+        tapButton.disabled = false; // Ensure tap button is enabled after authorization
+        tapDisabledMessage.style.display = 'none'; // Hide connect message
         authorizeMoreTapsButton.style.display = 'none';
         nonce++; // Increment nonce after successful authorization
+        await updateStats(); // Sync with contract after authorization
     } catch (error) {
         console.error('Authorization failed:', error);
         tapButton.disabled = true;
@@ -471,7 +475,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     totalFuel = savedState.totalFuel || 0;
     totalTaps = savedState.totalTaps || 0;
     invitesSent = savedState.invitesSent || 0;
-    authorizedTaps = savedState.authorizedTaps || 0; // Load persisted authorizedTaps
+    authorizedTaps = savedState.authorizedTaps || 0;
     nonce = savedState.nonce || 0;
     smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
