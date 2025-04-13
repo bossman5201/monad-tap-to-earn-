@@ -1,5 +1,5 @@
 // Mock process for browser compatibility (fix for WalletConnect)
-window.process = { env: { NODE_ENV: 'browser' } }; // Restored from original
+window.process = { env: { NODE_ENV: 'browser' } };
 
 // Canvas Background Animation (Unchanged)
 const canvas = document.getElementById('canvas');
@@ -237,14 +237,14 @@ async function connectWallet() {
         walletAddressDisplay.textContent = `Connected: ${account.slice(0, 6)}...${account.slice(-4)}`;
         connectWalletButton.style.display = 'none';
         disconnectWalletButton.style.display = 'inline-block';
+        authorizeMoreTapsButton.style.display = 'inline-block'; // Show authorize button on connect
         await updateMonBalance();
         await updateStats();
-        await authorizeTaps();
+        await authorizeTaps(); // Auto-authorize on connect
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         console.log('Connection complete, contract state:', { contract });
-        // Attach tap listener only after contract is confirmed
-        tapButton.addEventListener('click', handleTap);
+        tapButton.addEventListener('click', handleTap); // Ensure listener is set
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
@@ -269,6 +269,7 @@ async function disconnectWallet() {
         walletAddressDisplay.textContent = '';
         connectWalletButton.style.display = 'inline-block';
         disconnectWalletButton.style.display = 'none';
+        authorizeMoreTapsButton.style.display = 'none';
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
     } catch (error) {
@@ -300,7 +301,8 @@ async function handleTap() {
 
     console.log('Attempting tap with contract:', { account, nonce, signature, contract });
     try {
-        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, Math.floor(Date.now() / 1000) + 86400, 0, '0x', '0x').catch(err => {
+        const deadline = Math.floor(Date.now() / 1000) + 86400; // 24-hour expiry
+        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, deadline, 0, '0x', '0x').catch(err => {
             console.error('Gas estimation failed:', err);
             return null;
         });
@@ -315,16 +317,19 @@ async function handleTap() {
             return;
         }
 
-        totalFuel++;
-        totalTaps++;
-        authorizedTaps--;
+        // Optimistic update (prevent negative values)
+        const newFuel = Math.max(0, Number(totalFuel) + 1);
+        const newTaps = Math.max(0, Number(totalTaps) + 1);
+        const newAuthorizedTaps = Math.max(0, authorizedTaps - 1);
+        totalFuel = newFuel;
+        totalTaps = newTaps;
+        authorizedTaps = newAuthorizedTaps;
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
         const sig = ethers.Signature.from(signature);
-        const deadline = Math.floor(Date.now() / 1000) + 86400; // 24-hour expiry
         const tx = await contract.tapWithSignature(
             account,
             1,
@@ -343,9 +348,10 @@ async function handleTap() {
         await updateStats();
     } catch (error) {
         console.error('Tap failed:', error);
-        totalFuel--;
-        totalTaps--;
-        authorizedTaps++;
+        // Revert optimistic update on failure, but prevent negatives
+        totalFuel = Math.max(0, Number(totalFuel) - 1);
+        totalTaps = Math.max(0, Number(totalTaps) - 1);
+        authorizedTaps = Math.min(10000, Math.max(0, authorizedTaps + 1)); // Cap at 10,000
         smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
         smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
@@ -419,6 +425,10 @@ async function updateStats() {
             console.error('Failed to fetch stats:', error);
         }
     }
+    // Prevent negative or invalid values
+    totalFuel = Math.max(0, Number(totalFuel));
+    totalTaps = Math.max(0, Number(totalTaps));
+    authorizedTaps = Math.min(10000, Math.max(0, authorizedTaps));
     smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
     smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
     smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
@@ -452,13 +462,13 @@ function smoothUpdate(element, newValue) {
     element.textContent = newValue;
 }
 
-// Event Listeners (Fix incomplete disconnectWallet call)
+// Event Listeners
 document.addEventListener('DOMContentLoaded', () => {
     connectWalletButton.style.display = 'inline-block';
     connectWalletButton.addEventListener('click', async () => {
         await connectWallet();
     });
-    disconnectWalletButton.addEventListener('click', disconnectWallet); // Fixed call
+    disconnectWalletButton.addEventListener('click', disconnectWallet);
     authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
     donateButton.addEventListener('click', () => donateModal.style.display = 'block');
     closeDonate.addEventListener('click', () => donateModal.style.display = 'none');
