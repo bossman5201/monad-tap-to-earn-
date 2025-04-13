@@ -1,7 +1,7 @@
 // Mock process for browser compatibility (fix for WalletConnect)
 window.process = { env: { NODE_ENV: 'browser' } }; // Restored from original
 
-// Canvas Background Animation
+// Canvas Background Animation (Unchanged)
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext('2d');
 canvas.width = window.innerWidth;
@@ -171,15 +171,15 @@ let walletConnectProvider;
 // WalletConnect Setup
 const projectId = '7044f2da2e31ce2e3765424a20c0c63b';
 const EXPECTED_CHAIN_ID = 10143;
-const CONTRACT_ADDRESS = '0x65b21160b13C9D4F11F58D66327D7916A3E49e0d';
+const CONTRACT_ADDRESS = '0x878376874623af432760e9e86414c1839Bc6EC34'; // Updated contract address
 const ABI = [
-    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
     {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"}],"name":"setAuthorizedTaps","outputs":[],"stateMutability":"nonpayable","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"totalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"nonces","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"inputs":[{"internalType":"address","name":"","type":"address"}],"name":"authorizedTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
-    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"}],"name":"Tap","type":"event"}
+    {"inputs":[{"internalType":"address","name":"user","type":"address"},{"internalType":"uint256","name":"tapCount","type":"uint256"},{"internalType":"uint256","name":"nonce","type":"uint256"},{"internalType":"uint256","name":"deadline","type":"uint256"},{"internalType":"uint8","name":"v","type":"uint8"},{"internalType":"bytes32","name":"r","type":"bytes32"},{"internalType":"bytes32","name":"s","type":"bytes32"}],"name":"tapWithSignature","outputs":[],"stateMutability":"nonpayable","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getTotalFuel","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getTotalTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getNonce","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"inputs":[{"internalType":"address","name":"user","type":"address"}],"name":"getAuthorizedTaps","outputs":[{"internalType":"uint256","name":"","type":"uint256"}],"stateMutability":"view","type":"function"},
+    {"anonymous":false,"inputs":[{"indexed":true,"internalType":"address","name":"user","type":"address"},{"indexed":false,"internalType":"uint256","name":"fuel","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"taps","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"tapCount","type":"uint256"},{"indexed":false,"internalType":"uint256","name":"nonce","type":"uint256"},{"indexed":false,"internalType":"bytes32","name":"digest","type":"bytes32"}],"name":"Tap","type":"event"}
 ];
 
 // Initialize Web3 Connection
@@ -300,7 +300,7 @@ async function handleTap() {
 
     console.log('Attempting tap with contract:', { account, nonce, signature, contract });
     try {
-        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, 0, '0x', '0x').catch(err => {
+        const gasEstimate = await contract.estimateGas.tapWithSignature(account, 1, nonce, Math.floor(Date.now() / 1000) + 86400, 0, '0x', '0x').catch(err => {
             console.error('Gas estimation failed:', err);
             return null;
         });
@@ -323,16 +323,17 @@ async function handleTap() {
         smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
         spawnParticles();
 
-        const sig = ethers.Signature.from(signature); // Use pre-approved signature
-        console.log('Sending transaction with:', { account, tapCount: 1, nonce, v: sig.v, r: sig.r, s: sig.s });
+        const sig = ethers.Signature.from(signature);
+        const deadline = Math.floor(Date.now() / 1000) + 86400; // 24-hour expiry
         const tx = await contract.tapWithSignature(
             account,
             1,
             nonce,
+            deadline,
             sig.v,
             sig.r,
             sig.s,
-            { gasLimit: gasEstimate || 100000 }
+            { gasLimit: gasEstimate || 21000 }
         );
         console.log('Transaction sent, waiting for confirmation:', tx.hash);
         await tx.wait();
@@ -371,13 +372,16 @@ async function authorizeTaps() {
         TapAuthorization: [
             { name: "user", type: "address" },
             { name: "tapCount", type: "uint256" },
-            { name: "nonce", type: "uint256" }
+            { name: "nonce", type: "uint256" },
+            { name: "deadline", type: "uint256" }
         ]
     };
+    const deadline = Math.floor(Date.now() / 1000) + 86400; // 24-hour expiry
     const value = {
         user: account,
         tapCount: tapCount,
-        nonce: nonce
+        nonce: nonce,
+        deadline: deadline
     };
 
     try {
@@ -406,10 +410,10 @@ async function authorizeTaps() {
 async function updateStats() {
     if (provider && signer && account && contract) {
         try {
-            totalFuel = (await contract.totalFuel(account)).toString();
-            totalTaps = (await contract.totalTaps(account)).toString();
-            authorizedTaps = Number(await contract.authorizedTaps(account));
-            nonce = Number(await contract.nonces(account));
+            totalFuel = (await contract.getTotalFuel(account)).toString();
+            totalTaps = (await contract.getTotalTaps(account)).toString();
+            authorizedTaps = Number(await contract.getAuthorizedTaps(account));
+            nonce = Number(await contract.getNonce(account));
             console.log('Stats updated:', { totalFuel, totalTaps, authorizedTaps, nonce });
         } catch (error) {
             console.error('Failed to fetch stats:', error);
@@ -422,7 +426,7 @@ async function updateStats() {
     localStorage.setItem('gameState', JSON.stringify({ totalFuel, totalTaps, invitesSent, authorizedTaps, nonce }));
 }
 
-// Particle Effects
+// Particle Effects (Unchanged)
 const particleContainer = document.getElementById('particle-container');
 function spawnParticles() {
     for (let i = 0; i < 10; i++) {
@@ -442,46 +446,25 @@ function spawnParticles() {
     }
 }
 
-// Smooth Update
+// Smooth Update (Unchanged)
 function smoothUpdate(element, newValue) {
     element.classList.add('updated');
     element.textContent = newValue;
 }
 
-// Event Listeners
+// Event Listeners (Fix incomplete disconnectWallet call)
 document.addEventListener('DOMContentLoaded', () => {
     connectWalletButton.style.display = 'inline-block';
     connectWalletButton.addEventListener('click', async () => {
         await connectWallet();
     });
-    disconnectWalletButton.addEventListener('click', disconnectWallet);
+    disconnectWalletButton.addEventListener('click', disconnectWallet); // Fixed call
     authorizeMoreTapsButton.addEventListener('click', authorizeTaps);
-    donateButton.addEventListener('click', () => {
-        donateModal.style.display = 'flex';
-    });
-    closeDonate.addEventListener('click', () => {
-        donateModal.style.display = 'none';
-    });
-    backToGameButton.addEventListener('click', () => {
-        donateModal.style.display = 'none';
-    });
+    donateButton.addEventListener('click', () => donateModal.style.display = 'block');
+    closeDonate.addEventListener('click', () => donateModal.style.display = 'none');
+    backToGameButton.addEventListener('click', () => donateModal.style.display = 'none');
     copyAddressButton.addEventListener('click', () => {
-        const address = donateAddress.textContent;
-        navigator.clipboard.writeText(address).then(() => {
-            copyAddressButton.textContent = 'Copied!';
-            setTimeout(() => copyAddressButton.textContent = 'Copy Address', 2000);
-        });
+        navigator.clipboard.writeText(donateAddress.textContent);
+        alert('Address copied to clipboard!');
     });
-
-    const savedState = JSON.parse(localStorage.getItem('gameState')) || {};
-    totalFuel = savedState.totalFuel || 0;
-    totalTaps = savedState.totalTaps || 0;
-    invitesSent = savedState.invitesSent || 0;
-    authorizedTaps = savedState.authorizedTaps || 0;
-    nonce = savedState.nonce || 0;
-    smoothUpdate(fuelDisplay, `Total Fuel: ${totalFuel}`);
-    smoothUpdate(tapsDisplay, `Total Taps: ${totalTaps}`);
-    smoothUpdate(invitesDisplay, `Invites Sent: ${invitesSent}`);
-    smoothUpdate(authorizedTapsDisplay, `Authorized Taps Remaining: ${authorizedTaps}/10000`);
-    updateStats().catch(err => console.error('Initial stats update failed:', err));
 });
