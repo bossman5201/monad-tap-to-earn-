@@ -244,7 +244,12 @@ async function connectWallet() {
         tapButton.disabled = false;
         tapDisabledMessage.style.display = 'none';
         console.log('Connection complete, contract state:', { contract });
-        tapButton.addEventListener('click', handleTap); // Ensure listener is set
+
+        // Ensure listener is added only after contract is confirmed
+        if (tapButton && !tapButton.hasListener) {
+            tapButton.addEventListener('click', handleTap);
+            tapButton.hasListener = true; // Flag to prevent duplicate listeners
+        }
     } catch (error) {
         console.error('Wallet connection failed:', error);
         alert('Connection failed: ' + (error.message || 'Unknown error. Ensure you are on Monad Testnet (Chain ID 10143).'));
@@ -272,6 +277,10 @@ async function disconnectWallet() {
         authorizeMoreTapsButton.style.display = 'none';
         tapButton.disabled = true;
         tapDisabledMessage.style.display = 'block';
+        if (tapButton && tapButton.hasListener) {
+            tapButton.removeEventListener('click', handleTap);
+            delete tapButton.hasListener; // Clean up flag
+        }
     } catch (error) {
         console.error('Failed to disconnect wallet:', error);
     }
